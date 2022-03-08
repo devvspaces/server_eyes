@@ -28,6 +28,14 @@
             </div>
         </nav>
 
+        {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{message}}
+            </div>
+            {% endfor %}
+        {% endif %}
+
 
         <section id="tabs">
             <div class="container-fluid">

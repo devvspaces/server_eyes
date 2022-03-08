@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect, render
@@ -5,6 +6,8 @@ from django.urls import reverse
 from django.views.generic import FormView, UpdateView, TemplateView
 
 from utils.general import verify_next_link
+
+from services.models import Service
 
 from .forms import LoginForm
 
@@ -27,6 +30,8 @@ def login_view(request):
                 # Get next link
                 next = verify_next_link(request.POST.get('next'))
                 next = next if next else reverse('panel:dashboard')
+
+                messages.success(request, f"Welcome, {username}.")
                 return redirect(next)
     
     context['form'] = form
@@ -44,3 +49,12 @@ class Dashboard(LoginRequiredMixin, TemplateView):
     extra_context = {
         'title': 'Dashboard'
     }
+
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Get available services
+        context["services"] = Service.objects.all()
+        return context
+    
