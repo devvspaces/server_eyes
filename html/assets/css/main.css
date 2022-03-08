@@ -1,0 +1,169 @@
+/* Container */
+body{
+    background: #f7f8fa;
+}
+.container-fluid{
+    max-width: 1300px;
+}
+.navbar{
+    background-color: rgb(2, 19, 35) !important;
+}
+
+
+/* Mini tabs */
+.mini_tabs{
+    display: flex;
+    align-items: center;
+}
+.mini_tabs .mini_tab{
+    width: 200px;
+    height: 100px;
+    border-radius: .5rem;
+    background-color: rgb(11, 36, 61);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    margin: 1rem 1rem 0 0;
+    font-size: 1rem;
+    transition: .3s;
+    text-decoration: none;
+}
+.mini_tabs .mini_tab:hover {
+    transform: translateY(-5px);
+    background-color: rgb(27, 62, 98);
+}
+.mini_tabs_head{
+    margin: 0;
+}
+
+#tabs{
+    padding-top: 1rem;
+}
+
+section{
+    padding: 5rem 0;
+}
+
+
+/* side_mini_bar */
+.side_mini_bar{
+}
+.side_mini_bar ul{
+    padding: 0;
+    list-style-type: none;
+    margin-bottom: 0;
+}
+.side_mini_bar ul li{
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid rgba(0,0,0,.125);
+}
+.side_mini_bar ul li:last-child{
+    border-bottom: 0;
+}
+.side_mini_bar ul li p{
+    margin: 0;
+    font-size: .85rem;
+}
+.side_mini_bar ul li p.head{
+    font-weight: bold;
+    color: #70797e;
+}
+
+
+/* Log page */
+.filter_box{
+    display: flex;
+    align-items: center;
+    padding: 1rem 0;
+    flex-wrap: wrap;
+}
+.filter_box label{
+    font-weight: bold;
+    color: #70797e;
+}
+.filter_box > div{
+    margin: .5rem 1rem 0 0;
+}
+.filter_box button{
+    margin: .9rem 1rem 0 0;
+    width: 100px;
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+}
+
+.log_tab .head{
+    display: flex;
+}
+
+.log_tab .status_reload {
+    margin-left: auto;
+    font-size: .8rem;
+}
+
+.log_tab .status_reload .top .stat{
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+}
+.log_tab .status_reload .top{
+    display: flex;
+    align-items: center;
+    justify-content: right;
+    margin-bottom: .4rem;
+}
+.log_tab .status_reload .top .icon{
+    display: block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: var(--bs-gray);
+    margin-right: .2rem;
+}
+.log_tab .status_reload .top .icon.active{
+    background-color: var(--bs-success);
+}
+.log_tab .status_reload .top .btn{
+    font-size: .6rem !important;
+    margin-left: .4rem;
+    border-radius: 1rem;
+}
+.log_tab .status_reload .bottom{
+    display: flex;
+    align-items: center;
+}
+.log_tab .status_reload .bottom p{
+    margin: 0;
+}
+
+.log_sheet{
+    border-radius: .4rem;
+    border: 1px solid rgba(0,0,0,.125);
+    height: 500px;
+    background-color: #fff;
+    padding: 1rem;
+    overflow-y: scroll;
+}
+
+/* width */
+::-webkit-scrollbar {
+    width: 5px;
+  }
+  
+  /* Track */
+  ::-webkit-scrollbar-track {
+    background: #f1f1f1; 
+  }
+   
+  /* Handle */
+  ::-webkit-scrollbar-thumb {
+    background: #888; 
+    border-radius: 1rem;
+  }
+  
+  /* Handle on hover */
+  ::-webkit-scrollbar-thumb:hover {
+    background: #555; 
+  }
