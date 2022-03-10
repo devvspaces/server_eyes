@@ -197,9 +197,9 @@ def get_version(service_name):
 
     for key, val in args.items():
         if service_name in val:
-            version = 'V'
+            version = val
 
-    process = subprocess.run([service_name, '-{version}'], text=True, capture_output=True)
+    process = subprocess.run([service_name, f'-{version}'], text=True, capture_output=True)
     if process.returncode == 0:
         output = process.stdout
         match = re.search(r"\d*\.\d*\.\d*", output)
