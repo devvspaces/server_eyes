@@ -219,6 +219,7 @@ def get_active_state(service_name):
             result = match.group().strip('\n')
 
             # Get the status
+            printt(result.split('='))
             status = result.split('=')[1]
             return True if status == 'active' else False
     else:
