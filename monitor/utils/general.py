@@ -188,8 +188,18 @@ def get_version(service_name):
     name = os.name
     if name == 'nt':
         return 'Windows'
+    
+    # Set the version arg
+    version = 'v'
+    args = {
+        'V': ['mysql']
+    }
 
-    process = subprocess.run([service_name, '-v'], text=True, capture_output=True)
+    for key, val in args.items():
+        if service_name in val:
+            version = 'V'
+
+    process = subprocess.run([service_name, '-{version}'], text=True, capture_output=True)
     if process.returncode == 0:
         output = process.stdout
         match = re.search(r"\d*\.\d*\.\d*", output)
