@@ -216,9 +216,8 @@ def get_active_state(service_name):
         match = re.search('ActiveState=\w*', output)
 
         if match:
-            result = match.group()
+            result = match.group().strip('\n')
 
-            printt(result)
             # Get the status
             status = result.split('=')[1]
             return True if status == 'active' else False
