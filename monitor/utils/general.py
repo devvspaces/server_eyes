@@ -191,7 +191,7 @@ def get_version(service_name):
 
     process = subprocess.run([service_name, '-v'], text=True, capture_output=True)
     if process.returncode == 0:
-        output = process.stdout()
+        output = process.stdout
         match = re.search(r"\d*\.\d*\.\d*", output)
         if match:
             return match.group()
@@ -213,7 +213,7 @@ def get_active_state(service_name):
     if True:
         process = subprocess.run(["systemctl", "show", service_name, '--no-page'], text=True, capture_output=True)
         if process.returncode == 0:
-            output = process.stdout()
+            output = process.stdout
             match = re.search('ActiveState=\w*', output)
             if match:
                 result = match.group()
