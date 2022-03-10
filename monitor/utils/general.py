@@ -252,7 +252,8 @@ def get_service_logs(service_name):
     commands = shlex.split(command)
     process = subprocess.Popen(commands, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    if True:
+    # if True:
+    try:
         print('Entered true')
         # Enter password
         process.stdin.write(team_pass)
@@ -268,10 +269,14 @@ def get_service_logs(service_name):
         print('Replaces newlines', logs)
 
         return mark_safe(logs)
-    
-    else:
+    except Exception as e:
+        printt(f'Error while trying to get logs for {service_name}')
         logger.debug(f'Error while trying to get logs for {service_name}')
-        logger.debug(process.stderr)
+        err_logger.exception(e)
+    
+    # else:
+    #     logger.debug(f'Error while trying to get logs for {service_name}')
+    #     logger.debug(process.stderr)
 
     # os.popen("sudo -S %s"%(command), 'w').write('mypass')
     # os.popen("su root", 'w').write('mypass')
