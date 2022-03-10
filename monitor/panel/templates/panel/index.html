@@ -14,7 +14,7 @@
             {% for service in services %}
             
             <a href="{% url 'panel:service' service.service_name %}" class="mini_tab">
-                <h6>{{ service.name.capitalize }}</h6>
+                <h6>{{ service.name }}</h6>
             </a>
 
             {% endfor %}
