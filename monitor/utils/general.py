@@ -244,7 +244,7 @@ def get_service_logs(service_name):
     if name == 'nt':
         return mark_safe('test<br>test')
 
-    command = 'sudo -S journalctl -u {service_name} --no-page'
+    command = f'sudo -S journalctl -u {service_name} --no-page'
     # command = "sudo -S {command}"
     team_pass = settings.TEAM_KEY.encode()
 
