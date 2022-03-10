@@ -197,7 +197,7 @@ def get_version(service_name):
 
     for key, val in args.items():
         if service_name in val:
-            version = val
+            version = key
 
     process = subprocess.run([service_name, f'-{version}'], text=True, capture_output=True)
     if process.returncode == 0:
