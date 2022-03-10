@@ -19,6 +19,7 @@ class Service(models.Model):
             self.active = True
         self.active = False
         self.last_checked = timezone.now()
+        self.save()
     
     def get_logs(self):
         return get_service_logs(self.service_name)
