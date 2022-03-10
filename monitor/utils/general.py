@@ -240,7 +240,7 @@ def get_service_logs(service_name):
 
     # Split commands with shlex
     commands = shlex.split(command)
-    process = subprocess.Popen(commands, stdin=subprocess.PIPE, text=True, capture_output=True)
+    process = subprocess.run(commands, stdin=subprocess.PIPE, text=True, capture_output=True)
 
     if process.returncode == 0:
         # Enter password
