@@ -210,21 +210,19 @@ def get_active_state(service_name):
     if name == 'nt':
         return 'Windows'
 
-    if True:
-        process = subprocess.run(["systemctl", "show", service_name, '--no-page'], text=True, capture_output=True)
-        if process.returncode == 0:
-            output = process.stdout
-            match = re.search('ActiveState=\w*', output)
+    process = subprocess.run(["systemctl", "show", service_name, '--no-page'], text=True, capture_output=True)
+    if process.returncode == 0:
+        output = process.stdout
+        match = re.search('ActiveState=\w*', output)
 
-            printt('the match i got', match)
-            if match:
-                result = match.group()
-                # Get the status
-                status = result.split('=')[1]
-                return True if status == 'active' else False
-        else:
-            logger.debug(f'Error while trying to get status for {service_name}')
-            logger.debug(process.stderr)
+        if match:
+            result = match.group()
+            # Get the status
+            status = result.split('=')[1]
+            return True if status == 'active' else False
+    else:
+        logger.debug(f'Error while trying to get status for {service_name}')
+        logger.debug(process.stderr)
 
 
 def get_service_logs(service_name):
