@@ -252,15 +252,20 @@ def get_service_logs(service_name):
     commands = shlex.split(command)
     process = subprocess.Popen(commands, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    if process.returncode == 0:
+    if True:
+        print('Entered true')
         # Enter password
         process.stdin.write(team_pass)
 
         # Get the logs
         logs = process.stdout.read().decode()
 
+        print('GOt logs', logs)
+
         # Replace \n with <br> tags
         logs = logs.replace('\n', '<br><br>')
+
+        print('Replaces newlines', logs)
 
         return mark_safe(logs)
     
