@@ -215,6 +215,8 @@ def get_active_state(service_name):
         if process.returncode == 0:
             output = process.stdout
             match = re.search('ActiveState=\w*', output)
+
+            printt('the match i got', match)
             if match:
                 result = match.group()
                 # Get the status
