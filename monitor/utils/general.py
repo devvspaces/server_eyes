@@ -250,14 +250,14 @@ def get_service_logs(service_name):
 
     # Split commands with shlex
     commands = shlex.split(command)
-    process = subprocess.run(commands, stdin=subprocess.PIPE, text=True, capture_output=True)
+    process = subprocess.Popen(commands, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     if process.returncode == 0:
         # Enter password
         process.stdin.write(team_pass)
 
         # Get the logs
-        logs = process.stdout.read()
+        logs = process.stdout.read().decode()
 
         # Replace \n with <br> tags
         logs = logs.replace('\n', '<br><br>')
