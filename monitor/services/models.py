@@ -17,7 +17,8 @@ class Service(models.Model):
         status = get_active_state(self.service_name)
         if status:
             self.active = True
-        self.active = False
+        else:
+            self.active = False
         self.last_checked = timezone.now()
         self.save()
     
