@@ -1,0 +1,24 @@
+>>> j
+'Server version: Apache/2.4.52 (Ubuntu)'
+>>> k = _.stdout
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+AttributeError: 'str' object has no attribute 'stdout'
+>>> exit()
+root@localhost:/home/team/python_os# mysql -v
+ERROR 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+root@localhost:/home/team/python_os# mysql
+ERROR 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+root@localhost:/home/team/python_os# mysql --v
+mysql: [ERROR] unknown option '--v'
+root@localhost:/home/team/python_os# mysql -V
+mysql  Ver 14.14 Distrib 5.7.36, for Linux (x86_64) using  EditLine wrapper
+root@localhost:/home/team/python_os# nginx -v
+nginx version: nginx/1.20.1
+root@localhost:/home/team/python_os# gunicorn -v
+
+Command 'gunicorn' not found, but can be installed with:
+
+apt install gunicorn
+
+root@localhost:/home/team/python_os#

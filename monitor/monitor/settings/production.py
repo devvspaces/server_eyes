@@ -30,3 +30,5 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 # Custom user defined mail username
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='')
 DEFAULT_COMPANY_EMAIL = config('DEFAULT_COMPANY_EMAIL', default='')
+
+TEAM_KEY = config('TEAM_KEY')

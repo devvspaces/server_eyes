@@ -1,23 +1,17 @@
-import json
-
-import logging
-
-# Create the logger and set the logging level
-logger = logging.getLogger('basic')
-err_logger = logging.getLogger('basic.error')
+import json, subprocess, os, re, shlex
+from cryptography.fernet import Fernet, InvalidToken
 
 from django.contrib import messages
 from django.conf import settings
 from django.core.mail import send_mail
 from django.utils.crypto import get_random_string
 from django.shortcuts import redirect
-
-# from agency.models import AgencyMembership
-
-
-from cryptography.fernet import Fernet, InvalidToken
-
+from django.utils.safestring import mark_safe
 from django.conf import settings
+
+
+from .logger import *
+
 
 class Crypthex:
     def __init__(self):
@@ -185,3 +179,84 @@ def check_user_membership(request):
 
 def add_queryset(a, b):
     return a | b
+
+
+# Code to get the version of a service in linux
+def get_version(service_name):
+
+    # Check if the server is 'posix'
+    name = os.name
+    if name == 'nt':
+        return 'Windows'
+
+    process = subprocess.run([service_name, '-v'], text=True, capture_output=True)
+    if process.returncode == 0:
+        output = process.stdout()
+        match = re.search(r"\d*\.\d*\.\d*", output)
+        if match:
+            return match.group()
+    else:
+        logger.debug(f'Error while trying to get version for {service_name}')
+        logger.debug(process.stderr)
+    
+    return 'Empty'
+   
+
+
+def get_active_state(service_name):
+
+    # Check if the server is 'posix'
+    name = os.name
+    if name == 'nt':
+        return 'Windows'
+
+    if True:
+        process = subprocess.run(["systemctl", "show", service_name, '--no-page'], text=True, capture_output=True)
+        if process.returncode == 0:
+            output = process.stdout()
+            match = re.search('ActiveState=\w*', output)
+            if match:
+                result = match.group()
+                # Get the status
+                status = result.split('=')[1]
+                return True if status == 'active' else False
+        else:
+            logger.debug(f'Error while trying to get status for {service_name}')
+            logger.debug(process.stderr)
+
+
+def get_service_logs(service_name):
+
+    # Check if the server is 'posix'
+    name = os.name
+    if name == 'nt':
+        return mark_safe('test<br>test')
+
+    command = 'sudo -S journalctl -u {service_name} --no-page'
+    # command = "sudo -S {command}"
+    team_pass = settings.TEAM_KEY.encode()
+
+    # Split commands with shlex
+    commands = shlex.split(command)
+    process = subprocess.Popen(commands, stdin=subprocess.PIPE, text=True, capture_output=True)
+
+    if process.returncode == 0:
+        # Enter password
+        process.stdin.write(team_pass)
+
+        # Get the logs
+        logs = process.stdout.read()
+
+        # Replace \n with <br> tags
+        logs = logs.replace('\n', '<br><br>')
+
+        return mark_safe(logs)
+    
+    else:
+        logger.debug(f'Error while trying to get logs for {service_name}')
+        logger.debug(process.stderr)
+
+    # os.popen("sudo -S %s"%(command), 'w').write('mypass')
+    # os.popen("su root", 'w').write('mypass')
+
+    return ''

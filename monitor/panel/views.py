@@ -1,9 +1,12 @@
+import time
+
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import redirect, render
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.views.generic import FormView, UpdateView, TemplateView
+from django.views.generic import FormView, DetailView, TemplateView
 
 from utils.general import verify_next_link
 
@@ -57,4 +60,68 @@ class Dashboard(LoginRequiredMixin, TemplateView):
         # Get available services
         context["services"] = Service.objects.all()
         return context
+
+
+class Dashboard(LoginRequiredMixin, TemplateView):
+    template_name = 'panel/index.html'
+
+    extra_context = {
+        'title': 'Dashboard'
+    }
+
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Get available services
+        context["services"] = Service.objects.all()
+        return context
+
+
+class ServiceLog(LoginRequiredMixin, DetailView):
+    template_name = 'panel/log_tab.html'
+    model = Service
+    slug_field = 'service_name'
+    slug_url_kwarg = 'service_name'
+    context_object_name = 'service'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        service = self.get_object()
+
+        # Get service name
+        context["title"] = service.name
+
+        return context
+
+
+def recheck_service_status(request, service_name):
+    obj = get_object_or_404(Service, service_name=service_name)
+
+    # Update status
+    obj.recheck()
+
+    messages.success(request, f"{obj.name} service status is successfully reloaded")
+
+    return redirect(obj.get_absolute_url())
+
+
+def get_logs_view(request):
+
+    time.sleep(4)
+
+    if request.POST:
+        service_name = request.POST.get('service_name')
+
+        obj = get_object_or_404(Service, service_name=service_name)
+
+        # Get the service logs
+        data = {
+            'log': obj.get_logs()
+        }
     
+        return JsonResponse(data=data, status=200)
+    
+    messages.warning(request, 'Page does not exist')
+    return redirect('panel:dashboard')

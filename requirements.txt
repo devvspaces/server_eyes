@@ -1,0 +1,8 @@
+asgiref==3.5.0
+cffi==1.15.0
+cryptography==36.0.1
+Django==4.0.3
+pycparser==2.21
+python-decouple==3.6
+sqlparse==0.4.2
+tzdata==2021.5

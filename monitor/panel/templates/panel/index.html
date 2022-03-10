@@ -13,7 +13,7 @@
 
             {% for service in services %}
             
-            <a href="#" class="mini_tab">
+            <a href="{% url 'panel:service' service.service_name %}" class="mini_tab">
                 <h6>{{ service.name.capitalize }}</h6>
             </a>
 
