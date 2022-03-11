@@ -269,7 +269,7 @@ def get_service_logs(service_name):
         # process.stdin.write(team_pass)
 
         # Get the logs
-        logs = process.stdout.read().decode()
+        logs = process.stdout.decode()
 
         print('GOt logs', logs)
 
@@ -280,7 +280,7 @@ def get_service_logs(service_name):
 
         return mark_safe(logs)
     except Exception as e:
-        printt(f'Error while trying to get logs for {service_name}')
+        print(f'Error while trying to get logs for {service_name}')
         logger.debug(f'Error while trying to get logs for {service_name}')
         err_logger.exception(e)
     
