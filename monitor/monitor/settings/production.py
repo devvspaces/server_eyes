@@ -32,3 +32,41 @@ DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='')
 DEFAULT_COMPANY_EMAIL = config('DEFAULT_COMPANY_EMAIL', default='')
 
 TEAM_KEY = config('TEAM_KEY')
+
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'loggers': {
+        'basic': {
+            'handlers': ['basic_h'],
+            'level': 'DEBUG',
+        },
+        'basic.error': {
+            'handlers': ['basic_e'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+    },
+    'handlers': {
+        'basic_h': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': '/home/team/server_eyes/monitor/logs/debug.log',
+            'formatter' : 'simple',
+        },
+        'basic_e': {
+            'level': 'WARNING',
+            'class': 'logging.FileHandler',
+            'filename': '/home/team/server_eyes/monitor/logs/error.log',
+            'formatter' : 'simple',
+        },
+    },
+    'formatters':{
+        'simple': {
+            'format': '{levelname} : {asctime} : {message}',
+            'style': '{',
+        }
+    }
+}
