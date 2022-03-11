@@ -260,8 +260,8 @@ def get_service_logs(service_name):
         print('Enter 1')
 
         print(process.returncode)
-        print(process.stderr.read())
-        print(process.stdout.read())
+        # print(process.stderr.read())
+        # print(process.stdout.read())
 
         print('Entered true')
 
