@@ -256,6 +256,8 @@ def get_service_logs(service_name):
     # if True:
     try:
 
+        print('Enter 1')
+
         print(process.returncode)
         print(process.stderr.read())
         print(process.stdout.read())
