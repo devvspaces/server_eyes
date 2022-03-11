@@ -244,7 +244,8 @@ def get_service_logs(service_name):
     if name == 'nt':
         return mark_safe('test<br>test')
 
-    command = f'sudo -S journalctl -u {service_name} --no-page'
+    command = f'journalctl -u {service_name} --no-page'
+    # command = f'sudo -S journalctl -u {service_name} --no-page'
     # command = "sudo -S {command}"
     team_pass = settings.TEAM_KEY.encode()
 
@@ -262,7 +263,7 @@ def get_service_logs(service_name):
         print('Entered true')
 
         # Enter password
-        process.stdin.write(team_pass)
+        # process.stdin.write(team_pass)
 
         # Get the logs
         logs = process.stdout.read().decode()
