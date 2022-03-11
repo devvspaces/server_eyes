@@ -251,7 +251,8 @@ def get_service_logs(service_name):
 
     # Split commands with shlex
     commands = shlex.split(command)
-    process = subprocess.Popen(commands, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    process = subprocess.run(commands, capture_output=True, text=True)
+    # process = subprocess.Popen(commands, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     # if True:
     try:
