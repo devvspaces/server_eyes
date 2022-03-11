@@ -109,8 +109,6 @@ def recheck_service_status(request, service_name):
 
 def get_logs_view(request):
 
-    time.sleep(4)
-
     if request.POST:
         service_name = request.POST.get('service_name')
 
