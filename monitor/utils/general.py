@@ -269,7 +269,7 @@ def get_service_logs(service_name):
         # process.stdin.write(team_pass)
 
         # Get the logs
-        logs = process.stdout.decode()
+        logs = process.stdout
 
         print('GOt logs', logs)
 
