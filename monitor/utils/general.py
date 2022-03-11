@@ -254,9 +254,12 @@ def get_service_logs(service_name):
 
     # if True:
     try:
-        print('Entered true')
 
+        print(process.returncode)
         print(process.stderr.read())
+        print(process.stdout.read())
+
+        print('Entered true')
 
         # Enter password
         process.stdin.write(team_pass)
