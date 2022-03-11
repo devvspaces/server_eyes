@@ -1,6 +1,6 @@
 from .base import *
 
-ALLOWED_HOSTS = ['epanel.spacepen.tech']
+ALLOWED_HOSTS = ['172.105.43.50', 'panel.spacepen.tech']
 
 
 DATABASES = {
