@@ -1,0 +1,57 @@
+{% extends 'panel/base.html' %}
+
+
+{% block content %}
+<div class="log_tab">
+
+    <div class="head">
+        <h4>{{ website.name }}</h4>
+
+        <div class="status_reload">
+            <div class="top">
+                <div class="stat">
+                    <span class="icon {{ website.get_last_status }}"></span>
+                    <span class="detail">{{ website.get_last_status.capitalize }}</span>
+                </div>
+                <a href="{% url 'panel:recheck_website' website.conf_filename %}" class="btn btn-sm btn-primary">Reload</a>
+            </div>
+            <div class="bottom">
+                <p>Last checked: {{ website.last_checked }}</p>
+            </div>
+        </div>
+    </div>
+
+    <form class="filter_box" method='post' id='log_form' action="{% url 'panel:get_log_website' %}">
+
+        {% csrf_token %}
+        <input name='conf_filename' type='hidden' value="{{ website.conf_filename }}"/>
+
+        <div class="mb-3">
+            <label for="log_type">Log type</label>
+            <select name="log_type" class="form-select" id="log_type">
+                <option value="access">Access</option>
+                <option value="error">Error</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="from_date">From</label>
+            <input name="from_date" type="date" class="form-control" id="from_date"/>
+        </div>
+
+        <div class="mb-3">
+            <label for="to_date">To</label>
+            <input name="to_date" type="date" class="form-control" id="to_date"/>
+        </div>
+
+        <button type='submit' class="btn btn-primary btn-sm">Run</button>
+
+    </form>
+
+
+    <div class="log_sheet">
+        <p></p>
+    </div>
+
+</div>
+{% endblock content %}
