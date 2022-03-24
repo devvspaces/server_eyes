@@ -70,3 +70,8 @@ LOGGING = {
         }
     }
 }
+
+# Register cron jobs
+CRONJOBS = [
+    ('*/2 * * * *', 'panel.cron.recheck_websites')
+]

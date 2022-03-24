@@ -24,6 +24,9 @@ INSTALLED_APPS = [
     # Custom app
     'services',
     'panel',
+
+    # CRONTAB
+    'django_crontab',
 ]
 
 MIDDLEWARE = [
