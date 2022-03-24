@@ -10,7 +10,7 @@ def recheck_websites():
     # Loop through all websites
     for website in websites:
         # Recheck status
-        websites.recheck()
+        website.recheck()
     
     # Log
     logger.debug(f'Completed running of cron job for reloading websites status.')
