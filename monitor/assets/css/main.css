@@ -11,14 +11,15 @@ body{
 
 
 /* Mini tabs */
-.mini_tabs{
+.mini_tabs {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
 }
-.mini_tabs .mini_tab{
+.mini_tabs .mini_tab {
     width: 200px;
     height: 100px;
-    border-radius: .5rem;
+    border-radius: 0.5rem;
     background-color: rgb(11, 36, 61);
     display: flex;
     align-items: center;
@@ -28,6 +29,11 @@ body{
     font-size: 1rem;
     transition: .3s;
     text-decoration: none;
+    flex-direction: column;
+    text-align: center;
+}
+.mini_tabs .mini_tab p{
+    font-size: .75rem;
 }
 .mini_tabs .mini_tab:hover {
     transform: translateY(-5px);
