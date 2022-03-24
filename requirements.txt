@@ -1,8 +1,14 @@
 asgiref==3.5.0
+certifi==2021.10.8
 cffi==1.15.0
+charset-normalizer==2.0.12
 cryptography==36.0.1
 Django==4.0.3
+django-crontab==0.7.1
+idna==3.3
 pycparser==2.21
 python-decouple==3.6
+requests==2.27.1
 sqlparse==0.4.2
 tzdata==2021.5
+urllib3==1.26.9
