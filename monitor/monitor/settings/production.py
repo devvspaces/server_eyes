@@ -73,5 +73,5 @@ LOGGING = {
 
 # Register cron jobs
 CRONJOBS = [
-    ('*/15 * * * *', 'panel.cron.recheck_websites')
+    ('*/10 * * * *', 'panel.cron.recheck_websites')
 ]
