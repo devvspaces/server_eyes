@@ -137,7 +137,7 @@ $(function() {
                 $('.log_sheet p').html(message);
 
                 // Create alert
-                createAlert('Logs were pulled successful')
+                createAlert('Logs were pulled successfully')
 			},
 			error: function (jqXHR) {
 				console.log(jqXHR)
@@ -156,6 +156,68 @@ $(function() {
 
 	if($('#log_form').length){
 		$('#log_form').submit(submitForm);
+	}
+
+	function submitAddSubdomainForm(e) {
+		e.preventDefault()
+		let form = this
+		let formData = $(this).serialize();
+
+		let thisURL = this.action
+
+		// Play loader
+		playLoader()
+
+        // Clear alerts
+        clearAlerts()
+	
+		$.ajax({
+			method: "POST",
+			url: thisURL,
+			data: formData,
+			success: function (data){
+				// Pause loader
+				stopLoader()
+
+                // Create alert
+                createAlert('New subdomain created successfully')
+			},
+			error: function (jqXHR) {
+				console.log(jqXHR)
+				let data = jqXHR['responseJSON']
+				// Pause loader
+				stopLoader()
+
+				// Check if there are errors
+                let errors = data['errors']
+
+				console.log(errors)
+
+                if (errors){
+                    $('.form-errors').html('');
+                    for (let [reason, field] of Object.entries(errors)) {
+						// key = key[field']
+                        if (field != '__all__'){
+                            let input = form.querySelector("input[name='" + field + "']")
+                            let new_el = document.createElement('small')
+                            new_el.classList.add('text-danger')
+                            new_el.innerText = reason
+                            
+                            // Get the form error div
+                            let form_error_div = input.nextElementSibling
+                            form_error_div.appendChild(new_el)
+                        }
+                    }
+                }
+
+                // Create error alert
+                createAlert('Error occured while trying to create domain, check errors.', 'danger')
+			},
+		})
+	}
+
+	if($('#add-subdomain-form').length){
+		$('#add-subdomain-form').submit(submitAddSubdomainForm);
 	}
 	
 	

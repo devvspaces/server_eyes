@@ -42,6 +42,101 @@ class Crypthex:
 cryptor = Crypthex()
 
 
+import requests
+
+from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
+
+
+class LinodeClient:
+    def __init__(self):
+        # Add the personal access token gotten from linode here
+        self.personal_access_token = settings.LINODE_PAT
+        self.headers = {
+            'Authorization': f'Bearer {self.personal_access_token}',
+        }
+
+        # Set the linode api version here
+        linode_api_version = settings.LINODE_API_VERSION
+        self.domain = f"https://api.linode.com/{linode_api_version}/"
+
+        # Define endpoints
+        domains = 'domains'
+
+        self.endpoints = {
+            'domains_list': f'{domains}',
+            'domain_records': f'{domains}/-domainId-/records',
+        }
+
+        # POST, PUT, PATCH, DELETE FUNCTIONS
+        self.request = {
+            'post': requests.post,
+            'put': requests.put,
+            'patch': requests.patch,
+            'delete': requests.delete,
+        }
+    
+
+    def get_headers(self):
+        headers = self.headers
+        return headers
+
+
+    def build_uri(self, endpoint, url_values=None):
+        # Get the rel url of the endpoint
+        rel_url = self.endpoints.get(endpoint, '')
+
+        if rel_url:
+
+            # Get the url values
+            if url_values is not None:
+                for key, val in url_values.items():
+                    rel_url = rel_url.replace(key, str(val))
+
+            return f'{self.domain}{rel_url}'
+
+        raise ObjectDoesNotExist('API endpoint does not exist')
+
+
+    def fetch_post(self, method='post', endpoint='', data=None, url_values=None, files=None):
+        # Get the endpoint
+        url = self.build_uri(endpoint, url_values)
+
+        print('Called post request', endpoint)
+
+        if data is None:
+            data = {}
+        
+        if files is None:
+            files = {}
+
+        if method == 'delete':
+            response = self.request.get(method)(url, headers = self.get_headers())
+
+            return response.status_code, dict()
+        else:
+            response = self.request.get(method)(url, data, headers = self.get_headers(), files=files)
+
+            return response.status_code, response.json()
+
+
+    def fetch_get(self, endpoint='', params=None, url_values=None):
+        # Get the endpoint
+        url = self.build_uri(endpoint, url_values)
+
+        print('Called get request', endpoint)
+
+        if params is None:
+            params = {}
+
+        response = requests.get(url, params=params, headers = self.get_headers())
+
+        return response.status_code, response.json()
+
+linodeClient = LinodeClient()
+
+
+
 def invalid_str(value):
     # This checks if a string contains special chars or not
     for i in '@#$%^&*+=://;?><}{[]()':
@@ -63,15 +158,22 @@ def printt(*args, **kwargs):
         return print(*args, **kwargs)
 
 
-# def send_email(email, subject, message, fail=True):
-#     if settings.DEBUG:
-#         print(message)
-    
-#     if settings.OFF_EMAIL:
-#         return True
-        
-#     val = send_mail(subject=subject, message=message, from_email=settings.DEFAULT_FROM_EMAIL, recipient_list=[email], fail_silently=fail)
-#     return True if val else False
+
+def get_required_data(dict_like_obj, req_data=None):
+    """
+    This is a function used to get the required keys from a post or get request,
+    to be passed to the api endpoint as a form or get data
+    """
+    if req_data is None:
+        req_data = []
+
+    data = {}
+
+    for i in req_data:
+        data[i] = dict_like_obj.get(i, '')
+
+    return data
+
 
 
 def send_email(email, subject, message, fail=True):

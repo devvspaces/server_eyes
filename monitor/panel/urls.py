@@ -16,4 +16,7 @@ urlpatterns = [
     path('app/dashboard/websites/<str:conf_filename>/',  views.WebsiteLog.as_view(), name='website'),
     path('app/dashboard/websites/stat/<str:conf_filename>/',  views.recheck_website_status, name='recheck_website'),
     path('app/dashboard/website/logs/',  views.get_websites_logs_view, name='get_log_website'),
+    
+    path('app/domain/',  views.DomainList.as_view(), name='domain-list'),
+    path('app/domain/<int:domain_id>/subdomains/',  views.DomainDetail.as_view(), name='domain-detail'),
 ]

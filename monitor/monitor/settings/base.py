@@ -169,3 +169,6 @@ OFF_EMAIL = True
 PASSWORD_RESET_TIMEOUT = 86400
 
 ADMIN_EMAIL = 'sketcherslodge@gmail.com'
+
+LINODE_PAT = config('LINODE_PAT')
+LINODE_API_VERSION='v4'
