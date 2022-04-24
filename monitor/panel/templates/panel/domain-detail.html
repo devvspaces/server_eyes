@@ -6,7 +6,7 @@
     <div class="d-flex align-items-center justify-content-between py-5">
         <div>
             <h5 class="display-6 fw-normal">{{ domain.domain }}</h5>
-            <p class="fs-6 text-muted fw-bold">{{ main_domain_ip }}</p>
+            <p class="fs-6 text-muted fw-bold"><a href="{% url 'panel:domain-list' %}" class='text-decoration-none'>Domain list / </a>{{ main_domain_ip }}</p>
         </div>
         <span class="badge bg-{{ domain.status_tag }}">{{ domain.status }}</span>
     </div>
@@ -15,7 +15,8 @@
         <div class="card-header py-3 d-flex align-items-center">
             <h5 class="mini_tabs_head">Subdomains</h5>
 
-            <a href="#" class="btn btn-sm btn-primary ms-auto" type="button" data-bs-toggle="modal" data-bs-target="#addSubdomainModal">Add Subdomain</a>
+            <a href="{% url 'panel:subdomain-list-update' domain.domain_id %}" class="btn btn-sm btn-primary ms-auto">Reload</a>
+            <a href="#" class="btn btn-sm btn-success ms-1" type="button" data-bs-toggle="modal" data-bs-target="#addSubdomainModal">Add Subdomain</a>
         </div>
     </div>
 
@@ -62,20 +63,21 @@
 
                     {% csrf_token %}
                     <div class="mb-3">
-                        <label for="HostnameID" class="form-label">Hostname</label>
-                        <input name="name" type="text" class="form-control" id="HostnameID" aria-describedby="HostnameHelp">
+                        <label for="HostnameID" class="form-label">Hostname*</label>
+                        <input name="name" required type="text" class="form-control" id="HostnameID" aria-describedby="HostnameHelp">
                         <div class="form-errors"></div>
                     </div>
 
                     <div class="mb-3">
-                        <label for="ipAddressID" class="form-label">IP Address</label>
-                        <input name="target" type="text" class="form-control" id="ipAddressID" value="{{ main_domain_ip }}">
+                        <label for="ipAddressID" class="form-label">IP Address*</label>
+                        <input name="target" required type="text" class="form-control" id="ipAddressID" value="{{ main_domain_ip }}">
                         <div class="form-errors"></div>
                     </div>
 
                     <div class="mb-3">
                         <label for="ttl_ID" class="form-label">TTL</label>
-                        <input name="ttl_sec" type="text" class="form-control" id="ttl_ID" value="14400">
+                        <input name="ttl_sec" type="text" class="form-control" id="ttl_ID" placeholder='Time to live'>
+                        <small class='text-muted'>Not required, if not provided, default value will be used.</small>
                         <div class="form-errors"></div>
                     </div>
 

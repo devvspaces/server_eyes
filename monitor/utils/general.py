@@ -66,6 +66,7 @@ class LinodeClient:
         self.endpoints = {
             'domains_list': f'{domains}',
             'domain_records': f'{domains}/-domainId-/records',
+            'record_update': f'{domains}/-domainId-/records/-recordId-',
         }
 
         # POST, PUT, PATCH, DELETE FUNCTIONS
@@ -115,7 +116,7 @@ class LinodeClient:
 
             return response.status_code, dict()
         else:
-            response = self.request.get(method)(url, data, headers = self.get_headers(), files=files)
+            response = self.request.get(method)(url, json=data, headers = self.get_headers(), files=files)
 
             return response.status_code, response.json()
 
@@ -530,5 +531,36 @@ def get_enabled_sites():
 
     return ''
 
+
+# Function to convert errors from django format to linode format
+def convert_error(data=None):
+    if data is None:
+        data = dict()
+
+    # Set list of errors
+    processed_errors = []
+    
+    try:
+        errors = data.get('errors')
+        # Is error a dict
+        if isinstance(errors, dict):
+
+            # Loop through data to create this
+            # {'reason': 'value', 'field': 'key'}
+            for key, value in errors.items():
+                # Value would be a list of strings
+                # Convert all of value to one string
+                value = mark_safe('<br>'.join(value))
+
+                new_error = {
+                    'reason': value,
+                    'field': key,
+                }
+                processed_errors.append(new_error)
+
+            # Return the processed errors
+            return {'errors': processed_errors}
+    except Exception as e:
+        err_logger.exception(e)
 
 

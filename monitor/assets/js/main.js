@@ -180,7 +180,13 @@ $(function() {
 				stopLoader()
 
                 // Create alert
-                createAlert('New subdomain created successfully')
+                createAlert('New subdomain created successfully, reloading page now.')
+
+				// Reload site after 3 seconds
+				let reload_time = 1000 * 3;
+				setTimeout(function(){
+					location.reload()
+				}, reload_time)
 			},
 			error: function (jqXHR) {
 				console.log(jqXHR)
@@ -195,9 +201,12 @@ $(function() {
 
                 if (errors){
                     $('.form-errors').html('');
-                    for (let [reason, field] of Object.entries(errors)) {
-						// key = key[field']
+                    for (const [key, value] of Object.entries(errors)) {
+						let field = value['field']
+						let reason = value['reason']
                         if (field != '__all__'){
+							console.log(field)
+							console.log(reason)
                             let input = form.querySelector("input[name='" + field + "']")
                             let new_el = document.createElement('small')
                             new_el.classList.add('text-danger')

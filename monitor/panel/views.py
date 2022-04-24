@@ -9,12 +9,12 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views import generic
 
-from utils.general import verify_next_link, linodeClient, get_required_data
+from utils.general import verify_next_link, linodeClient, get_required_data, convert_error
 
 from services.models import Service, Website
 
-from .forms import LoginForm
-from .models import Domain
+from .forms import LoginForm, SubdomainForm
+from .models import Domain, Subdomain
 
 # Create your views here.
 def login_view(request):
@@ -178,50 +178,46 @@ def get_websites_logs_view(request):
 
 
 
-class DomainList(LoginRequiredMixin, generic.TemplateView):
+class DomainList(LoginRequiredMixin, generic.ListView):
     template_name = 'panel/domains.html'
-
+    model = Domain
+    ordering = ['domain']
     extra_context = {
         'title': 'Domain Lists'
     }
+    context_object_name = 'list_domains_processed'
 
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+# Function based view to update the domain list from linode
+def update_domain_list(request):
+    # Get domains from linode
+    status, data = linodeClient.fetch_get('domains_list')
 
-        # Get domains from linode
-        status, data = linodeClient.fetch_get('domains_list')
-        list_domains_processed = []
+    # Get if status is valid
+    if status == 200:
+        list_domains = data['data']
 
-        # Get if status is valid
-        if status == 200:
-            list_domains = data['data']
+        # New obj
+        for domain_obj in list_domains:
 
-            # New obj
-            for domain_obj in list_domains:
+            # Get the bootstrap tag to use for the status
+            status = domain_obj.get('status')
+            status_tag = 'success' if status == 'active' else 'danger'
 
-                # Get the bootstrap tag to use for the status
-                status = domain_obj.get('status')
-                status_tag = 'success' if status == 'active' else 'danger'
+            new_obj = {
+                'domain': domain_obj.get('domain'),
+                'domain_id': domain_obj.get('id'),
+                'status': status,
+                'status_tag': status_tag,
+                'soa_email': domain_obj.get('soa_email'),
+            }
 
-                new_obj = {
-                    'domain': domain_obj.get('domain'),
-                    'domain_id': domain_obj.get('id'),
-                    'status': status,
-                    'status_tag': status_tag,
-                    'soa_email': domain_obj.get('soa_email'),
-                }
+            # Create or update domain objects
+            Domain.objects.update_or_create(**new_obj)
+        
+        messages.success(request, 'Domain list is successfully updated')
 
-                # Create or update domain objects
-                Domain.objects.update_or_create(**new_obj)
-
-                list_domains_processed.append(new_obj)
-            
-        context['list_domains_processed'] = list_domains_processed
-
-
-        return context
-
+    return redirect('panel:domain-list')
 
 class DomainDetail(LoginRequiredMixin, generic.DetailView):
     template_name = 'panel/domain-detail.html'
@@ -236,33 +232,29 @@ class DomainDetail(LoginRequiredMixin, generic.DetailView):
         # Get the domain and set title
         domain = self.object
 
-        # Get domains records for domain from linode
-        status, data = linodeClient.fetch_get('domain_records', url_values={'-domainId-': domain.domain_id})
+        main_domain_ip = ''
         list_records_processed = []
 
-        main_domain_ip = ''
+        # Get subdomains for domain
+        subdomains = Subdomain.objects.filter(domain_id=domain.domain_id)
 
-        # Get if status is valid
-        if status == 200:
-            list_records = data['data']
+        for domain_obj in subdomains:
+            name = domain_obj.name
+            target = domain_obj.target
+            record_id = domain_obj.record_id
 
-            for domain_obj in list_records:
-                record_type = domain_obj.get('type')
-                name = domain_obj.get('name')
-                target = domain_obj.get('target')
+            # Find the main domain name and id
+            if name == '':
+                main_domain_ip = target
+                continue
 
-                if record_type == 'A':
-                    # Find the main domain name and id
-                    if name == '':
-                        main_domain_ip = target
-                        continue
+            new_obj = {
+                'name': name,
+                'target': target,
+                'record_id': record_id,
+            }
 
-                    new_obj = {
-                        'name': name,
-                        'target': target,
-                    }
-
-                    list_records_processed.append(new_obj)
+            list_records_processed.append(new_obj)
             
         context['list_records_processed'] = list_records_processed
         context['main_domain_ip'] = main_domain_ip
@@ -282,25 +274,125 @@ class DomainDetail(LoginRequiredMixin, generic.DetailView):
             req_data = ['name', 'target', 'ttl_sec']
             data = get_required_data(request.POST, req_data)
 
-            # Add the record type to the data
-            data['type'] = 'A'
+            errors = []
 
-            status, result = linodeClient.fetch_post(endpoint='domain_records', data=data, url_values={'-domainId-': domain.domain_id})
+            # Validate the required data
+            form = SubdomainForm(data=data)
+            if form.is_valid():
 
-            if status == 200:
-                # Get the target and name
-                target, name = result['target'], result['name']
+                # Get the validated data
+                data = form.cleaned_data
 
-                data = {
-                    'target': target,
-                    'name': name,
-                }
+                # Add the record type to the data
+                data['type'] = 'A'
 
-                context['data'] = data
+                status, result = linodeClient.fetch_post(endpoint='domain_records', data=data, url_values={'-domainId-': domain.domain_id})
 
-                return JsonResponse(data=context, status=200)
+                if status == 200:
+                    # Get the target and name
+                    target, name, record_id = result['target'], result['name'], result['id']
 
-            context['errors'] = result['errors']
+                    new_obj = {
+                        'target': target,
+                        'name': name,
+                        'record_id': record_id,
+                        'domain_id': domain.domain_id,
+                    }
+
+                    context['data'] = new_obj
+
+                    # Create new subdomain
+                    Subdomain.objects.create(**new_obj)
+
+                    return JsonResponse(data=context, status=200)
+            
+                errors = result['errors']
+            
+            else:
+                errors = {'errors': form.errors}
+
+                # Convert error to linode format
+                errors = convert_error(errors)
+                if errors is not None:
+                    errors = errors['errors']
+
+            context['errors'] = errors
+
+            print(context)
 
             return JsonResponse(data=context, status=400)
+
+
+# Function based view to update the domain list from linode
+def update_subdomain_list(request, domain_id):
+    # Get the domain and set title
+    domain = get_object_or_404(Domain, domain_id=domain_id)
+
+    # Get subdomains for domain
+    subdomains = Subdomain.objects.filter(domain_id=domain.domain_id)
+    print(subdomains, 'Firstly')
+
+    # Set updated subdomain list
+    updated_sub_list = []
+
+    # Get domains records for domain from linode
+    status, data = linodeClient.fetch_get('domain_records', url_values={'-domainId-': domain.domain_id})
+
+    # Get if status is valid
+    if status == 200:
+        list_records = data['data']
+
+        for domain_obj in list_records:
+            record_type = domain_obj.get('type')
+            name = domain_obj.get('name')
+            target = domain_obj.get('target')
+            record_id = domain_obj.get('id')
+
+            # Check if the record is an A dns record
+            if record_type == 'A':
+
+                # Check if the record id is already in the db
+                try:
+                    # Get subdomain
+                    subdomain = subdomains.get(record_id=record_id)
+
+                    # Update it
+                    subdomain.name = name
+                    subdomain.target = target
+                    subdomain.save()
+
+                    # Append to updated subdomain list
+                    updated_sub_list.append(subdomain)
+                
+                except Subdomain.DoesNotExist:
+                    # Create new subomain
+                    new_obj = {
+                        'name': name,
+                        'target': target,
+                        'record_id': record_id,
+                        'domain_id': domain_id,
+                    }
+                    print('Created')
+                    new_obj = Subdomain.objects.create(**new_obj)
+                    updated_sub_list.append(new_obj)
+        
+        # Delete subdomains that are not processed. Because this means that
+        # they are not in linode anymore
+        print(subdomains, updated_sub_list)
+        for current in subdomains:
+            # value to know whether it is there or not
+            is_available = False
+            for new in updated_sub_list:
+                if new.id == current.id:
+                    is_available = True
+                    break
+            # Delete current meaning that it is not in the updated list at all
+            if not is_available:
+                current.delete()
+        
+        messages.success(request, 'Domain list is successfully updated')
+
+    return redirect(reverse('panel:domain-detail', args=[domain_id]))
+
+
 
