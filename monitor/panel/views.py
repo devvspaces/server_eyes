@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views import generic
 
-from utils.general import verify_next_link, linodeClient, get_required_data, convert_error
+from utils.general import verify_next_link, linodeClient, get_required_data, convert_error, is_ajax
 
 from services.models import Service, Website
 
@@ -263,8 +263,7 @@ class DomainDetail(LoginRequiredMixin, generic.DetailView):
 
 
     def post(self, request, *args, **kwargs):
-        requested_html = re.search(r'^text/html', request.META.get('HTTP_ACCEPT'))
-        if not requested_html:
+        if is_ajax(request):
             context= dict()
 
             # Get the domain object
@@ -372,13 +371,11 @@ def update_subdomain_list(request, domain_id):
                         'record_id': record_id,
                         'domain_id': domain_id,
                     }
-                    print('Created')
                     new_obj = Subdomain.objects.create(**new_obj)
                     updated_sub_list.append(new_obj)
         
         # Delete subdomains that are not processed. Because this means that
         # they are not in linode anymore
-        print(subdomains, updated_sub_list)
         for current in subdomains:
             # value to know whether it is there or not
             is_available = False
@@ -393,6 +390,5 @@ def update_subdomain_list(request, domain_id):
         messages.success(request, 'Domain list is successfully updated')
 
     return redirect(reverse('panel:domain-detail', args=[domain_id]))
-
 
 

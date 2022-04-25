@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     # Custom app
     'services',
     'panel',
+    'deployer',
 
     # CRONTAB
     'django_crontab',
@@ -172,6 +173,9 @@ ADMIN_EMAIL = 'sketcherslodge@gmail.com'
 
 LINODE_PAT = config('LINODE_PAT')
 LINODE_API_VERSION='v4'
+
+GITHUB_API_VERSION = 3
+GITHUB_PAT = config('GITHUB_PAT')
 
 # CACHES = {
 #     'default': {

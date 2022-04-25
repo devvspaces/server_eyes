@@ -15,8 +15,8 @@
         <div class="card-header py-3 d-flex align-items-center">
             <h5 class="mini_tabs_head">Subdomains</h5>
 
-            <a href="{% url 'panel:subdomain-list-update' domain.domain_id %}" class="btn btn-sm btn-primary ms-auto">Reload</a>
-            <a href="#" class="btn btn-sm btn-success ms-1" type="button" data-bs-toggle="modal" data-bs-target="#addSubdomainModal">Add Subdomain</a>
+            <a href="{% url 'panel:subdomain-list-update' domain.domain_id %}" class='btn btn-sm btn-secondary reload-btn ms-auto'> <span class='fa fa-refresh'></span> Reload</a>
+            <a href="#" class="btn btn-sm btn-primary ms-1" type="button" data-bs-toggle="modal" data-bs-target="#addSubdomainModal"><span class='fa fa-plus'></span>Add Subdomain</a>
         </div>
     </div>
 
@@ -27,6 +27,7 @@
                     <th scope="col">#</th>
                     <th scope="col">Domain name</th>
                     <th scope="col">Target</th>
+                    <th scope="col"></th>
                 </tr>
             </thead>
             <tbody>
@@ -38,6 +39,15 @@
                             <th scope="row">{{ forloop.counter }}</th>
                             <td>{{ record.name }}.{{ domain.domain }}</td>
                             <td>{{ record.target }}</td>
+                            <td>
+                                <form action="" method='post' class='d-flex align-items-center'>
+                                    {% csrf_token %}
+                                    <a class='btn btn-sm btn-primary icon-only-btn me-1' href='#'> <span class='fa fa-edit'></span></a>
+                                    
+                                    <input type="hidden" value="{{ record.id }}">
+                                    <button class='btn btn-sm btn-danger icon-only-btn'> <span class='fa fa-trash-o'></span></button>
+                                </form>
+                            </td>
                         </tr>
                     {% endfor %}
                     

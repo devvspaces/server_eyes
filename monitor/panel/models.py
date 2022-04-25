@@ -2,6 +2,8 @@ from django.db import models
 
 
 
+
+
 class Domain(models.Model):
     domain = models.URLField()
     domain_id = models.IntegerField(unique=True)
@@ -11,6 +13,28 @@ class Domain(models.Model):
 
     def __str__(self):
         return self.domain
+    
+    def get_subdomain_js_string(self):
+        # This function will be used to communicate with the deploy apps page
+        # Get the subdomains
+        subdomains = Subdomain.objects.filter(domain_id=self.domain_id)
+        
+        # Result list
+        result = []
+
+        for subdomain in subdomains:
+            # Clean subdomain name
+            sub_name = subdomain.name
+            if sub_name:
+                name = f"{sub_name}.{self.domain}"
+            else:
+                name = self.domain
+
+            record_id = subdomain.record_id
+
+            result.append(f"{name}*{record_id}")
+        
+        return '?'.join(result)
 
 
 class Subdomain(models.Model):

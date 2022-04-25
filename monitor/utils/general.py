@@ -48,27 +48,11 @@ from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 
 
-class LinodeClient:
-    def __init__(self):
-        # Add the personal access token gotten from linode here
-        self.personal_access_token = settings.LINODE_PAT
-        self.headers = {
-            'Authorization': f'Bearer {self.personal_access_token}',
-        }
 
-        # Set the linode api version here
-        linode_api_version = settings.LINODE_API_VERSION
-        self.domain = f"https://api.linode.com/{linode_api_version}/"
-
-        # Define endpoints
-        domains = 'domains'
-
-        self.endpoints = {
-            'domains_list': f'{domains}',
-            'domain_records': f'{domains}/-domainId-/records',
-            'record_update': f'{domains}/-domainId-/records/-recordId-',
-        }
-
+# Base api client
+class BaseAPIClient:
+    def __init__(self) -> None:
+        # Set request methods
         # POST, PUT, PATCH, DELETE FUNCTIONS
         self.request = {
             'post': requests.post,
@@ -76,12 +60,10 @@ class LinodeClient:
             'patch': requests.patch,
             'delete': requests.delete,
         }
-    
 
     def get_headers(self):
         headers = self.headers
         return headers
-
 
     def build_uri(self, endpoint, url_values=None):
         # Get the rel url of the endpoint
@@ -134,7 +116,60 @@ class LinodeClient:
 
         return response.status_code, response.json()
 
+
+
+class LinodeClient(BaseAPIClient):
+    def __init__(self):
+        # Call BaseAPIClient init
+        super().__init__()
+
+        # Add the personal access token gotten from linode here
+        self.personal_access_token = settings.LINODE_PAT
+        self.headers = {
+            'Authorization': f'Bearer {self.personal_access_token}',
+        }
+
+        # Set the linode api version here
+        linode_api_version = settings.LINODE_API_VERSION
+        self.domain = f"https://api.linode.com/{linode_api_version}/"
+
+        # Define endpoints
+        domains = 'domains'
+
+        self.endpoints = {
+            'domains_list': f'{domains}',
+            'domain_records': f'{domains}/-domainId-/records',
+            'record_update': f'{domains}/-domainId-/records/-recordId-',
+        }
+
 linodeClient = LinodeClient()
+
+
+class GithubClient(BaseAPIClient):
+    def __init__(self):
+        # Call BaseAPIClient init
+        super().__init__()
+
+        # Add the personal access token gotten from github here
+        # Set the github api version here
+        git_api_version = settings.GITHUB_API_VERSION
+        self.personal_access_token = settings.GITHUB_PAT
+        self.headers = {
+            'Authorization': f'Token {self.personal_access_token}',
+            "Accept" : f"application/vnd.github.v{git_api_version}+json",
+        }
+        
+        self.domain = f"https://api.github.com"
+
+        # Define endpoints
+        org = 'spacepen-dev'
+
+        self.endpoints = {
+            'repos': f'/orgs/{org}/repos',
+            'branches': f'/repos/{org}/-repo-/branches',
+        }
+        
+githubClient = GithubClient()
 
 
 
@@ -562,5 +597,11 @@ def convert_error(data=None):
             return {'errors': processed_errors}
     except Exception as e:
         err_logger.exception(e)
+
+
+# Get if a request is an ajax request
+def is_ajax(request):
+    requested_html = re.search(r'^text/html', request.META.get('HTTP_ACCEPT'))
+    return not requested_html
 
 

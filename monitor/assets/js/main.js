@@ -11,6 +11,103 @@ $(function() {
 		$('#loader_span').removeClass('play')
 	}
 
+	// Custom select box
+	$(document).ready(function() {
+		$('.cSelect').select2();
+	});
+
+	// Event for updating branches on selecting repo
+	$('#repo-input-p').on('select2:select', function (e) {
+		let data = e.params.data;
+
+		// Get the branches string
+    	let branches = data['title']
+
+		// Split to list of branches
+		branches = branches.split(',')
+
+		// Clean all option in branch select
+		$('#branch-input-p').empty()
+
+		// Loop through to add the branch select
+		branches.forEach(branch=>{
+			var data = {
+				id: branch,
+				text: branch
+			};
+			var newOption = new Option(data.text, data.id, false, false);
+			$('#branch-input-p').append(newOption)
+		})
+
+		// Update select2
+		$('#branch-input-p').trigger('change');
+	});
+
+	// Event for updating subdomains on selecting domain
+	$('#domain-input-p').on('select2:select', function (e) {
+		let data = e.params.data;
+
+		// Get the subdomains string
+    	let subdomains = data['title']
+		let domain_link_name = data['text']
+
+		// Split to list of subdomains
+		subdomains = subdomains.split('?')
+
+		// Clean all option in subdomains select
+		$('#subdomain-input-p').empty()
+
+		// Add default data to the select
+		var newOption = new Option('-Choose a Subdomain-', '', false, false);
+		$('#subdomain-input-p').append(newOption)
+
+		// Loop through to add the subdomains select
+		subdomains.forEach(subdomain=>{
+			// Split subdomain to domain link and record id
+			let [domain_link, record_id] = subdomain.split('*')
+			var data = {
+				id: record_id,
+				text: domain_link
+			};
+			var newOption = new Option(data.text, data.id, false, false);
+			$('#subdomain-input-p').append(newOption)
+		})
+
+		// Update select2
+		$('#subdomain-input-p').trigger('change');
+
+		// Update the subdomain-input-new under the select
+		$('#subdomain-input-new .input-group-text').text('.'+domain_link_name)
+	});
+
+
+	// Code for new and select subdomain
+	if ($('#new-subdomain-form-btn').length){
+		$('#new-subdomain-form-btn').click(function(e){
+			// Toggle items visibility
+			$('#subdomain-input-new').removeClass('d-none')
+			$('#subdomain-input-p').next().addClass('d-none')
+
+			// Btns
+			$('#new-subdomain-form-btn').addClass('d-none')
+			$('#select-subdomain-form-btn').removeClass('d-none')
+
+			// Update select2
+			$('#subdomain-input-p').val('').trigger('change');
+		})
+	}
+	if ($('#select-subdomain-form-btn').length){
+		$('#select-subdomain-form-btn').click(function(e){
+			// Toggle items visibility
+			$('#subdomain-input-new').addClass('d-none')
+			$('#subdomain-input-p').next().removeClass('d-none')
+
+			// Btns
+			$('#new-subdomain-form-btn').removeClass('d-none')
+			$('#select-subdomain-form-btn').addClass('d-none')
+		})
+	}
+
 
     /*  Codes for alert popup */
     
@@ -170,6 +267,10 @@ $(function() {
 
         // Clear alerts
         clearAlerts()
+
+		// Get success and error text if there
+		let success_text = $(form).attr('success_text')
+		let error_text = $(form).attr('error_text')
 	
 		$.ajax({
 			method: "POST",
@@ -180,7 +281,12 @@ $(function() {
 				stopLoader()
 
                 // Create alert
-                createAlert('New subdomain created successfully, reloading page now.')
+				if (success_text){
+					createAlert(success_text)
+				} else {
+					createAlert('New subdomain created successfully, reloading page now.')
+				}
+                
 
 				// Reload site after 3 seconds
 				let reload_time = 1000 * 3;
@@ -205,28 +311,42 @@ $(function() {
 						let field = value['field']
 						let reason = value['reason']
                         if (field != '__all__'){
-							console.log(field)
-							console.log(reason)
-                            let input = form.querySelector("input[name='" + field + "']")
+                            let input = form.querySelector("[name='" + field + "']")
                             let new_el = document.createElement('small')
                             new_el.classList.add('text-danger')
                             new_el.innerText = reason
+
+							let form_error_div;
                             
                             // Get the form error div
-                            let form_error_div = input.nextElementSibling
+							if (input.parentElement.classList.contains('input-group')){
+								form_error_div = input.parentElement.parentElement.querySelector('.form-errors')
+							} else {
+								form_error_div = input.parentElement.querySelector('.form-errors')
+							}
+                            
                             form_error_div.appendChild(new_el)
                         }
                     }
                 }
 
                 // Create error alert
-                createAlert('Error occured while trying to create domain, check errors.', 'danger')
+				if (error_text){
+					createAlert(error_text, 'danger')
+				} else {
+					createAlert('Error occured while trying to create domain, check errors.', 'danger')
+				}
+                
 			},
 		})
 	}
 
 	if($('#add-subdomain-form').length){
 		$('#add-subdomain-form').submit(submitAddSubdomainForm);
+	}
+
+	if($('#deploy-react-form').length){
+		$('#deploy-react-form').submit(submitAddSubdomainForm);
 	}
 	
 	

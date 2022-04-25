@@ -9,7 +9,7 @@ from utils.logger import logger, err_logger
 
 
 class Command(BaseCommand):
-    help = 'Creating Tags'
+    help = 'Loading Websites Hosted to DB'
 
     def handle(self, *args, **options):
         try:
