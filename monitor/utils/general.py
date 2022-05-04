@@ -801,7 +801,7 @@ def redeploy_process(app):
 
 
         # Restart apache server
-        process = run_command(f"sudo apt-get install apache2")
+        process = run_command(f"systemctl restart apache2")
         if process.returncode != 0:
             app_logger.critical(process.stderr)
             update_app_status(app)
