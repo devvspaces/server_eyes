@@ -186,4 +186,4 @@ GITHUB_PAT = config('GITHUB_PAT')
 # }
 
 
-DEPLOY_PROJECTS_DIR = '/home/netrobe/deploys/projects/'
+DEPLOY_PROJECTS_DIR = '/home/team/deploys/projects/'
