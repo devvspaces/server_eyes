@@ -27,6 +27,10 @@ body{
     margin: 0;
 }
 
+p{
+    margin: 0;
+}
+
 
 /* Mini tabs */
 .mini_tabs {
@@ -341,6 +345,7 @@ background: #555;
     position: relative;
     margin: 2rem 0;
     border-top: 2px solid var(--bs-dark);
+    flex-wrap: wrap;
 }
 .apps-list .app-box:hover{
     background-position: 40% 100%;
@@ -409,4 +414,73 @@ background: #555;
 }
 .select2-container--default .select2-selection--single .select2-selection__rendered {
     line-height: 38px;
+}
+
+
+.deploy-dets-box{
+    border-left: 2px solid var(--bs-success);
+    border-radius: .4rem;
+}
+.deploy-dets-box .info-ps{
+    display: flex;
+    flex-wrap: wrap;
+}
+.deploy-dets-box .info-ps .info-p{
+    margin-right: 1.5rem;
+    margin-bottom: 1rem;
+}
+.deploy-dets-box .info-ps .info-p p{
+    margin-top: .3rem;
+    font-weight: 500;
+}
+.deploy-dets-box .info-ps .info-p small{
+    font-size: .75rem;
+}
+.deploy-dets-box .card-footer{
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+.deploy-dets-box .card-footer .btn{
+    width: fit-content;
+    margin-left: .6rem;
+}
+.link-with-icon{
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+}
+.link-with-icon span{
+    margin-right: .4rem;
+}
+
+.status-btn{
+    font-size: .7rem;
+    background-color: var(--bs-primary);
+    color: #fff;
+    padding: .2rem .4rem;
+    border-radius: .3rem;
+}
+.status-btn span{
+    margin-right: .1rem;
+}
+.status-btn.deployed{
+    background-color: var(--bs-success);
+}
+.status-btn.inactive{
+    background-color: var(--bs-secondary);
+}
+.status-btn.pending{
+    background-color: var(--bs-warning);
+    color: #fff;
+}
+.status-btn.failed{
+    background-color: var(--bs-danger);
+}
+.status-btn.disabled{
+    background-color: var(--bs-secondary);
+}
+
+.modal-dialog {
+    max-width: 750px;
 }

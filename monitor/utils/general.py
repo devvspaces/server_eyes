@@ -1,4 +1,4 @@
-import json, subprocess, os, re, shlex, requests
+import json, subprocess, os, re, shlex, requests, logging
 from cryptography.fernet import Fernet, InvalidToken
 
 from django.contrib import messages
@@ -480,6 +480,8 @@ def get_website_logs(log_path):
     return ''
 
 
+
+
 # Code to get enabled sites from apahce sites-enabled folder
 def get_enabled_sites():
 
@@ -585,7 +587,8 @@ def convert_error(data=None):
             for key, value in errors.items():
                 # Value would be a list of strings
                 # Convert all of value to one string
-                value = mark_safe('<br>'.join(value))
+                value = "\n".join(value)
+                value = mark_safe(value)
 
                 new_error = {
                     'reason': value,
@@ -605,3 +608,209 @@ def is_ajax(request):
     return not requested_html
 
 
+
+# Code to quickly run os commands in one line
+def run_command(command, **kwargs):
+    commands = shlex.split(command)
+    return subprocess.run(commands, capture_output=True, text=True, **kwargs)
+
+def update_app_status(app, status='failed'):
+    app.status = status
+    app.save()
+
+def redeploy_process(app):
+
+    try:
+        # Set app status to pending so to know task is running
+        update_app_status(app, 'pending')
+
+        # Change directory to deploys projects folder
+        try:
+            os.chdir(settings.DEPLOY_PROJECTS_DIR)
+        except FileNotFoundError:
+            os.makedirs(settings.DEPLOY_PROJECTS_DIR)
+
+
+        # Create Project Directory if it does not exist
+        try:
+            os.mkdir(app.slug)
+        except FileExistsError:
+            pass
+        
+        # Change directory to project directory
+        os.chdir(app.slug)
+
+        
+        # Create or get log
+        app_logger = logging.getLogger('appLogger')
+        app_logger.setLevel(logging.INFO)
+
+        # 1. Create handler and formatter for logger
+        handler = logging.FileHandler(filename='deploy.log', mode='a')
+        format = logging.Formatter(fmt="{levelname} : {asctime} : {message}", style="{")
+        handler.setFormatter(format)
+
+        # 2. Add handler to app
+        app_logger.addHandler(handler)
+        
+        
+        app_logger.info('Started new deploying process')
+        update_app_status(app)
+        
+
+        # Clone the repository if repository does not exist
+        if not os.path.exists(app.slug):
+            # 1. Get repository from app => https://github.com/ORG/REPO.git
+            clone_url = app.repository.clone_url
+
+            # 2. Replace https:// with https://{username}:{password}@
+            # clone_url = clone_url.replace('https://', f"https://{settings.GITHUB_USER}:{settings.GITHUB_PAT}@")
+
+            # 3. Git clone url to a specific folder
+            clone_command = f"git clone {clone_url} {app.slug}"
+            process = run_command(clone_command)
+
+            if process.returncode != 0:
+                app_logger.critical(process.stderr)
+                update_app_status(app)
+                return
+            
+            app_logger.info('Cloning repository success')
+        
+
+        # Change directory to repo dir
+        os.chdir(app.slug)
+
+
+        # Set branch to selected branch
+        command = f"git checkout {app.branch}"
+        process = run_command(command)
+        if process.returncode != 0:
+            app_logger.critical(process.stderr)
+            update_app_status(app)
+            return
+        
+
+        app_logger.info(f'Checked into branch {app.branch} successfully')
+        
+        
+        # Run git pull to update branch
+        process = run_command("git pull")
+        if process.returncode != 0:
+            app_logger.critical(process.stderr)
+            update_app_status(app)
+            return
+        
+
+        app_logger.info(f'Git pull update on branch {app.branch} successfully')
+
+
+        # Run npm install
+        process = run_command("npm install")
+        if process.returncode != 0:
+            app_logger.critical(process.stderr)
+            update_app_status(app)
+            return
+        
+
+        app_logger.info(f'Project dependencies installed successfully')
+
+
+        try:
+            # Add domain to package.json homepage key
+            with open('package.json', 'r') as package_json_file:
+                package_json_dictionary = json.load(package_json_file)
+            package_json_dictionary['homepage'] = app.get_link()
+
+            # Set dictionary indent to 2
+            new = json.dumps(package_json_dictionary, indent=2)
+
+            # Update package.json back
+            with open('package.json', 'w') as package_json_file:
+                package_json_file.write(new)
+        except Exception as e:
+            app_logger.exception(e)
+            update_app_status(app)
+            return
+
+
+        app_logger.info(f'Project package.json homepage update success')
+
+
+        # Run npm build
+        process = run_command("npm run build")
+        if process.returncode != 0:
+            app_logger.critical(process.stderr)
+            update_app_status(app)
+            return
+        
+
+        app_logger.info(f'Project build is completed')
+
+
+        # Create apache configuration to site available
+        cwd = os.getcwd()
+        template = """
+        <VirtualHost *:80>
+            ServerAdmin admin@""" + f"{app.raw_link()}" + """
+            ServerName """ + f"{app.raw_link()}" + """
+
+            """ + f"DocumentRoot {cwd}/build" + """
+            DirectoryIndex index.html
+
+            <Directory """ + f"{cwd}/build" + """>
+                Options Indexes FollowSymLinks MultiViews
+                AllowOverride All
+                Require all granted
+            </Directory>
+
+            <FilesMatch \\.php$>
+                SetHandler "proxy:unix:/var/run/php/php7.3-fpm.sock|fcgi://localhost"
+            </FilesMatch>
+
+            ErrorLog ${APACHE_LOG_DIR}/""" + f"{app.slug}.log" + """
+            CustomLog ${APACHE_LOG_DIR}/""" + f"{app.slug}.log" + """ combined
+
+            RewriteEngine on
+            RewriteRule ^index\\.html$ - [L]
+            RewriteCond %{REQUEST_FILENAME} !-f
+            RewriteCond %{REQUEST_FILENAME} !-d
+            RewriteRule . /index.html [L]
+
+        </VirtualHost>
+        """
+
+        os.chdir("/etc/apache2/sites-available")
+        
+        with open(f"{app.slug}.conf", 'w') as conf:
+            conf.write(template)
+
+        
+        app_logger.info(f'Completly created web server configuration')
+
+
+        # Enable apache configuration
+        process = run_command(f"a2ensite {app.slug}.conf")
+        if process.returncode != 0:
+            app_logger.critical(process.stderr)
+            update_app_status(app)
+            return
+
+        
+        app_logger.info(f'Website configuration successfully enabled')
+
+
+        # Restart apache server
+        process = run_command(f"sudo apt-get install apache2")
+        if process.returncode != 0:
+            app_logger.critical(process.stderr)
+            update_app_status(app)
+            return
+        
+        update_app_status(app, 'deployed')
+        
+        app_logger.info(f'Website is successfully deployed.')
+
+    except Exception as e:
+        update_app_status(app)
+        app_logger.exception(e)

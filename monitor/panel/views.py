@@ -329,7 +329,6 @@ def update_subdomain_list(request, domain_id):
 
     # Get subdomains for domain
     subdomains = Subdomain.objects.filter(domain_id=domain.domain_id)
-    print(subdomains, 'Firstly')
 
     # Set updated subdomain list
     updated_sub_list = []

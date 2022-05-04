@@ -13,80 +13,27 @@
 
         {% comment %} <h5 class="my-5">No apps are deployed yet</h5> {% endcomment %}
 
+        {% for app in apps %}
         <div class="app-box">
             <div class="app-content">
                 <h6>Project Name</h6>
-                <p>ProjectABC</p>
+                <p>{{ app.project_name }}</p>
             </div>
             <div class="app-content">
                 <h6>Project Location</h6>
-                <p>ProjectABC</p>
+                <p>{{ app.get_dir }}</p>
             </div>
             <div class="app-content">
                 <h6>Conf. Location</h6>
-                <p>ProjectABC</p>
-            </div>
-
-            <div class="app-content">
-                <h6>Status</h6>
-                <p>Deployed</p>
+                <p>{{ app.get_apache_conf }}</p>
             </div>
 
             <div class="app-top-btn">
-                {% comment %} <p class="badge bg-danger">Deployed</p> {% endcomment %}
-                <a href="#" class="btn btn-primary">View App</a>
+                <p class="badge status-btn {{ app.status }}">{{ app.get_status_display }}</p>
+                <a href="{% url 'deploy:react-app' app.slug %}" class="btn btn-primary">View App</a>
             </div>
         </div>
-
-        <div class="app-box">
-            <div class="app-content">
-                <h6>Project Name</h6>
-                <p>ProjectABC</p>
-            </div>
-            <div class="app-content">
-                <h6>Project Location</h6>
-                <p>ProjectABC</p>
-            </div>
-            <div class="app-content">
-                <h6>Conf. Location</h6>
-                <p>ProjectABC</p>
-            </div>
-
-            <div class="app-content">
-                <h6>Status</h6>
-                <p>Deployed</p>
-            </div>
-
-            <div class="app-top-btn">
-                {% comment %} <p class="badge bg-danger">Deployed</p> {% endcomment %}
-                <a href="#" class="btn btn-primary">View App</a>
-            </div>
-        </div>
-
-        <div class="app-box">
-            <div class="app-content">
-                <h6>Project Name</h6>
-                <p>ProjectABC</p>
-            </div>
-            <div class="app-content">
-                <h6>Project Location</h6>
-                <p>ProjectABC</p>
-            </div>
-            <div class="app-content">
-                <h6>Conf. Location</h6>
-                <p>ProjectABC</p>
-            </div>
-
-            <div class="app-content">
-                <h6>Status</h6>
-                <p>Deployed</p>
-            </div>
-
-            <div class="app-top-btn">
-                {% comment %} <p class="badge bg-danger">Deployed</p> {% endcomment %}
-                <a href="#" class="btn btn-primary">View App</a>
-            </div>
-        </div>
+        {% endfor %}
 
     </div>
 

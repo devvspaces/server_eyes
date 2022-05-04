@@ -43,5 +43,10 @@ class Subdomain(models.Model):
     name = models.CharField(max_length=255)
     target = models.GenericIPAddressField()
 
+    def get_name(self):
+        if self.name == '.':
+            return ''
+        return self.name
+
     def __str__(self):
         return self.name

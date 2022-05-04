@@ -286,12 +286,21 @@ $(function() {
 				} else {
 					createAlert('New subdomain created successfully, reloading page now.')
 				}
+
+				console.log(data)
                 
 
 				// Reload site after 3 seconds
 				let reload_time = 1000 * 3;
 				setTimeout(function(){
-					location.reload()
+
+					let redirect = data['redirect'];
+					if (redirect.length){
+						location.href = redirect;
+					} else {
+						location.reload();
+					}
+					
 				}, reload_time)
 			},
 			error: function (jqXHR) {
@@ -348,6 +357,106 @@ $(function() {
 	if($('#deploy-react-form').length){
 		$('#deploy-react-form').submit(submitAddSubdomainForm);
 	}
+
+
+
+	if ($('#logModalContent').length){
+		// For getting logs on app page
+		var logModalContent = document.getElementById('logModalContent')
+
+		// Get log url
+		let log_url = $('#logModalContent').attr('log')
+
+		logModalContent.addEventListener('show.bs.modal', function (event) {
+			// Play loader
+			playLoader()
+
+			// Clear alerts
+			clearAlerts()
+
+			// Get success and error text if there
+			let success_text = 'Logs are gotten successfully'
+			let error_text = 'Error while getting logs'
+		
+			$.ajax({
+				method: "GET",
+				url: log_url,
+				success: function (data){
+					// Pause loader
+					stopLoader()
+
+					// Create alert
+					createAlert(success_text)
+
+					// Load result into modal
+					let text = data['data'];
+					$('#logModalContent p.content').html(text)
+
+					setTimeout(function(){
+						clearAlerts()
+					}, 5000)
+
+				},
+				error: function (jqXHR) {
+					// Pause loader
+					stopLoader()
+
+					// Create error alert
+					createAlert(error_text, 'danger')
+					
+				},
+			})
+		
+		})
+
+
+		function clearLogs(event) {
+			event.preventDefault()
+
+			let formData = $(this).serialize();
+			
+			// Play loader
+			playLoader()
+
+			// Clear alerts
+			clearAlerts()
+
+			let error_text = 'Error while clearing logs'
+			let success_text = 'Logs cleared successfully'
+		
+			$.ajax({
+				method: "POST",
+				url: log_url,
+				data: formData,
+				success: function (data){
+					// Pause loader
+					stopLoader()
+
+					// Create alert
+					createAlert(success_text)
+
+					// Set result into modal
+					let text = 'No logs yet';
+
+					$('#logModalContent p.content').html(text)
+
+				},
+				error: function (jqXHR) {
+					// Pause loader
+					stopLoader()
+
+					// Create error alert
+					createAlert(error_text, 'danger')
+					
+				},
+			})
+		
+		}
+
+		let logForm = document.querySelector('#logModalContent form')
+		logForm.addEventListener('submit', clearLogs)
+	}
+	
 	
 	
 });

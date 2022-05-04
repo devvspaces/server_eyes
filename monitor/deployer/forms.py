@@ -47,6 +47,9 @@ class ReactDeployForm(forms.ModelForm):
         repository = cleaned_data.get('repository')
         branch = cleaned_data.get('branch')
 
+        if not repository:
+            raise forms.ValidationError({'repository': 'You must select a repository'})
+
         if branch not in repository.get_branches():
             raise forms.ValidationError({"branch": 'Select a valid branch. That branch is not one of the available branches.'})
         

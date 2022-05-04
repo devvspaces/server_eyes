@@ -175,6 +175,7 @@ LINODE_PAT = config('LINODE_PAT')
 LINODE_API_VERSION='v4'
 
 GITHUB_API_VERSION = 3
+GITHUB_USER = config('GITHUB_USER')
 GITHUB_PAT = config('GITHUB_PAT')
 
 # CACHES = {
@@ -183,3 +184,6 @@ GITHUB_PAT = config('GITHUB_PAT')
 #         'LOCATION': 'redis://127.0.0.1:6379',
 #     }
 # }
+
+
+DEPLOY_PROJECTS_DIR = '/home/netrobe/deploys/projects/'
