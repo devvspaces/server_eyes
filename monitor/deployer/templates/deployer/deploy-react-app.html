@@ -1,0 +1,83 @@
+{% extends 'panel/base.html' %}
+
+
+{% block content %}
+
+<div class="card mb-5">
+    <div class="card-header py-3 d-flex align-items-center justify-content-between">
+        <h5 class="mini_tabs_head">React Apps</h5>
+        <a href="{% url 'deploy:react' %}" class='btn btn-sm btn-primary'> <span class='fa fa-arrow-left'></span> Back to apps</a>
+    </div>
+</div>
+    
+
+<form id='deploy-react-form' class="custom-deploy-form" method='post'
+ success_text="Deployed app is valid, and is being deployed successfully."
+error_text = "Error occured while trying to deploy app, check errors."
+ >
+    {% csrf_token %}
+    <legend class="display-6">Deploy React App</legend>
+
+    <div class="mb-3">
+        <label for="#name-input-p">Project Name</label>
+        <input type="text" name="project_name" id="name-input-p" class="form-control">
+        <div class="form-errors"></div>
+    </div>
+
+    <div class="mb-3">
+        <label for="#repo-input-p">Github Project Repository</label>
+        <select name="repository" id="repo-input-p" class="form-select cSelect">
+
+            <option value="" title=''>-Choose a repository-</option>
+
+            {% for repo in repos %}
+                <option value="{{ repo.id }}" title={{ repo.branches }}>{{ repo.name }}</option>
+            {% endfor %}
+            
+        </select>
+        <div class="form-errors"></div>
+    </div>
+
+    <div class="mb-3">
+        <label for="#branch-input-p">Github Repository Branch</label>
+        <select name="branch" id="branch-input-p" class="form-select cSelect">
+            
+        </select>
+        <div class="form-errors"></div>
+    </div>
+
+    <div class="mb-3">
+        <label for="#domain-input-p">Domain Master</label>
+        <select name="domain" id="domain-input-p" class="form-select cSelect">
+            <option value="" title=''>-Choose a domain-</option>
+
+            {% for domain in domains %}
+                <option value="{{ domain.id }}" title={{ domain.get_subdomain_js_string }}>{{ domain.domain }}</option>
+            {% endfor %}
+        </select>
+        <div class="form-errors"></div>
+    </div>
+
+    <div class="mb-3">
+        <label for="#subdomain-input-p" class='d-flex align-items-center justify-content-between'>Subdomain 
+            <span id="new-subdomain-form-btn" class='btn btn-outline-primary label-side'><i class="fa fa-plus"></i>New</span>
+            <span id="select-subdomain-form-btn" class='btn btn-outline-primary label-side d-none'><i class="fa fa-check-square-o"></i>Select</span>
+        </label>
+
+        <select name="subdomain" id="subdomain-input-p" class="form-select cSelect">
+        </select>
+
+        <div id='subdomain-input-new' class="input-group d-none">
+            <input type="text" name="link" id="link-input-p" class="form-control">
+            <div class="input-group-text"></div>
+        </div>
+
+        <div class="form-errors"></div>
+    </div>
+
+    <button type="submit" class="btn btn-lg btn-success mt-5 fw-bold"><span class="fa fa-cloud-upload"></span>Deploy</button>
+
+</form>
+
+    
+{% endblock content %}

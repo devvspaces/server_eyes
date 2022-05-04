@@ -53,4 +53,54 @@
     </div>
 </div>
 
+<div class="card mt-4">
+    <div class="card-header py-3">
+        <h6 class="mini_tabs_head">Server General</h6>
+    </div>
+
+    <div class="card-body">
+        <div class="mini_tabs">
+
+            
+            <a href="{% url 'panel:domain-list' %}" class="mini_tab">
+                <h6>Domain Lists</h6>
+            </a>
+
+            <a href="#" class="mini_tab">
+                <h6>File Manager</h6>
+                <p class='fw-bold text-muted'>Coming soon!</p>
+            </a>
+
+        </div>
+    </div>
+</div>
+
+
+<div class="card mt-4">
+    <div class="card-header py-3">
+        <h6 class="mini_tabs_head">Deploy Apps</h6>
+    </div>
+
+    <div class="card-body">
+        <div class="mini_tabs">
+
+            
+            <a href="#" class="mini_tab">
+                <h6>Python</h6>
+                <p class='fw-bold text-muted'>Coming soon!</p>
+            </a>
+
+            <a href="#" class="mini_tab">
+                <h6>PHP</h6>
+                <p class='fw-bold text-muted'>Coming soon!</p>
+            </a>
+
+            <a href="{% url 'deploy:react' %}" class="mini_tab">
+                <h6>React</h6>
+            </a>
+
+        </div>
+    </div>
+</div>
+
 {% endblock content %}

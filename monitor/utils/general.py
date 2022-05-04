@@ -1,4 +1,4 @@
-import json, subprocess, os, re, shlex, requests
+import json, subprocess, os, re, shlex, requests, logging
 from cryptography.fernet import Fernet, InvalidToken
 
 from django.contrib import messages
@@ -42,6 +42,137 @@ class Crypthex:
 cryptor = Crypthex()
 
 
+import requests
+
+from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
+
+
+
+# Base api client
+class BaseAPIClient:
+    def __init__(self) -> None:
+        # Set request methods
+        # POST, PUT, PATCH, DELETE FUNCTIONS
+        self.request = {
+            'post': requests.post,
+            'put': requests.put,
+            'patch': requests.patch,
+            'delete': requests.delete,
+        }
+
+    def get_headers(self):
+        headers = self.headers
+        return headers
+
+    def build_uri(self, endpoint, url_values=None):
+        # Get the rel url of the endpoint
+        rel_url = self.endpoints.get(endpoint, '')
+
+        if rel_url:
+
+            # Get the url values
+            if url_values is not None:
+                for key, val in url_values.items():
+                    rel_url = rel_url.replace(key, str(val))
+
+            return f'{self.domain}{rel_url}'
+
+        raise ObjectDoesNotExist('API endpoint does not exist')
+
+
+    def fetch_post(self, method='post', endpoint='', data=None, url_values=None, files=None):
+        # Get the endpoint
+        url = self.build_uri(endpoint, url_values)
+
+        print('Called post request', endpoint)
+
+        if data is None:
+            data = {}
+        
+        if files is None:
+            files = {}
+
+        if method == 'delete':
+            response = self.request.get(method)(url, headers = self.get_headers())
+
+            return response.status_code, dict()
+        else:
+            response = self.request.get(method)(url, json=data, headers = self.get_headers(), files=files)
+
+            return response.status_code, response.json()
+
+
+    def fetch_get(self, endpoint='', params=None, url_values=None):
+        # Get the endpoint
+        url = self.build_uri(endpoint, url_values)
+
+        print('Called get request', endpoint)
+
+        if params is None:
+            params = {}
+
+        response = requests.get(url, params=params, headers = self.get_headers())
+
+        return response.status_code, response.json()
+
+
+
+class LinodeClient(BaseAPIClient):
+    def __init__(self):
+        # Call BaseAPIClient init
+        super().__init__()
+
+        # Add the personal access token gotten from linode here
+        self.personal_access_token = settings.LINODE_PAT
+        self.headers = {
+            'Authorization': f'Bearer {self.personal_access_token}',
+        }
+
+        # Set the linode api version here
+        linode_api_version = settings.LINODE_API_VERSION
+        self.domain = f"https://api.linode.com/{linode_api_version}/"
+
+        # Define endpoints
+        domains = 'domains'
+
+        self.endpoints = {
+            'domains_list': f'{domains}',
+            'domain_records': f'{domains}/-domainId-/records',
+            'record_update': f'{domains}/-domainId-/records/-recordId-',
+        }
+
+linodeClient = LinodeClient()
+
+
+class GithubClient(BaseAPIClient):
+    def __init__(self):
+        # Call BaseAPIClient init
+        super().__init__()
+
+        # Add the personal access token gotten from github here
+        # Set the github api version here
+        git_api_version = settings.GITHUB_API_VERSION
+        self.personal_access_token = settings.GITHUB_PAT
+        self.headers = {
+            'Authorization': f'Token {self.personal_access_token}',
+            "Accept" : f"application/vnd.github.v{git_api_version}+json",
+        }
+        
+        self.domain = f"https://api.github.com"
+
+        # Define endpoints
+        org = 'spacepen-dev'
+
+        self.endpoints = {
+            'repos': f'/orgs/{org}/repos',
+            'branches': f'/repos/{org}/-repo-/branches',
+        }
+        
+githubClient = GithubClient()
+
+
+
 def invalid_str(value):
     # This checks if a string contains special chars or not
     for i in '@#$%^&*+=://;?><}{[]()':
@@ -63,15 +194,22 @@ def printt(*args, **kwargs):
         return print(*args, **kwargs)
 
 
-# def send_email(email, subject, message, fail=True):
-#     if settings.DEBUG:
-#         print(message)
-    
-#     if settings.OFF_EMAIL:
-#         return True
-        
-#     val = send_mail(subject=subject, message=message, from_email=settings.DEFAULT_FROM_EMAIL, recipient_list=[email], fail_silently=fail)
-#     return True if val else False
+
+def get_required_data(dict_like_obj, req_data=None):
+    """
+    This is a function used to get the required keys from a post or get request,
+    to be passed to the api endpoint as a form or get data
+    """
+    if req_data is None:
+        req_data = []
+
+    data = {}
+
+    for i in req_data:
+        data[i] = dict_like_obj.get(i, '')
+
+    return data
+
 
 
 def send_email(email, subject, message, fail=True):
@@ -342,6 +480,8 @@ def get_website_logs(log_path):
     return ''
 
 
+
+
 # Code to get enabled sites from apahce sites-enabled folder
 def get_enabled_sites():
 
@@ -429,4 +569,248 @@ def get_enabled_sites():
     return ''
 
 
+# Function to convert errors from django format to linode format
+def convert_error(data=None):
+    if data is None:
+        data = dict()
 
+    # Set list of errors
+    processed_errors = []
+    
+    try:
+        errors = data.get('errors')
+        # Is error a dict
+        if isinstance(errors, dict):
+
+            # Loop through data to create this
+            # {'reason': 'value', 'field': 'key'}
+            for key, value in errors.items():
+                # Value would be a list of strings
+                # Convert all of value to one string
+                value = "\n".join(value)
+                value = mark_safe(value)
+
+                new_error = {
+                    'reason': value,
+                    'field': key,
+                }
+                processed_errors.append(new_error)
+
+            # Return the processed errors
+            return {'errors': processed_errors}
+    except Exception as e:
+        err_logger.exception(e)
+
+
+# Get if a request is an ajax request
+def is_ajax(request):
+    requested_html = re.search(r'^text/html', request.META.get('HTTP_ACCEPT'))
+    return not requested_html
+
+
+
+# Code to quickly run os commands in one line
+def run_command(command, **kwargs):
+    commands = shlex.split(command)
+    return subprocess.run(commands, capture_output=True, text=True, **kwargs)
+
+def update_app_status(app, status='failed'):
+    app.status = status
+    app.save()
+
+def redeploy_process(app):
+
+    try:
+        # Set app status to pending so to know task is running
+        update_app_status(app, 'pending')
+
+        # Change directory to deploys projects folder
+        try:
+            os.chdir(settings.DEPLOY_PROJECTS_DIR)
+        except FileNotFoundError:
+            os.makedirs(settings.DEPLOY_PROJECTS_DIR)
+
+
+        # Create Project Directory if it does not exist
+        try:
+            os.mkdir(app.slug)
+        except FileExistsError:
+            pass
+        
+        # Change directory to project directory
+        os.chdir(app.slug)
+
+        
+        # Create or get log
+        app_logger = logging.getLogger('appLogger')
+        app_logger.setLevel(logging.INFO)
+
+        # 1. Create handler and formatter for logger
+        handler = logging.FileHandler(filename='deploy.log', mode='a')
+        format = logging.Formatter(fmt="{levelname} : {asctime} : {message}", style="{")
+        handler.setFormatter(format)
+
+        # 2. Add handler to app
+        app_logger.addHandler(handler)
+        
+        
+        app_logger.info('Started new deploying process')
+        update_app_status(app)
+        
+
+        # Clone the repository if repository does not exist
+        if not os.path.exists(app.slug):
+            # 1. Get repository from app => https://github.com/ORG/REPO.git
+            clone_url = app.repository.clone_url
+
+            # 2. Replace https:// with https://{username}:{password}@
+            # clone_url = clone_url.replace('https://', f"https://{settings.GITHUB_USER}:{settings.GITHUB_PAT}@")
+
+            # 3. Git clone url to a specific folder
+            clone_command = f"git clone {clone_url} {app.slug}"
+            process = run_command(clone_command)
+
+            if process.returncode != 0:
+                app_logger.critical(process.stderr)
+                update_app_status(app)
+                return
+            
+            app_logger.info('Cloning repository success')
+        
+
+        # Change directory to repo dir
+        os.chdir(app.slug)
+
+
+        # Set branch to selected branch
+        command = f"git checkout {app.branch}"
+        process = run_command(command)
+        if process.returncode != 0:
+            app_logger.critical(process.stderr)
+            update_app_status(app)
+            return
+        
+
+        app_logger.info(f'Checked into branch {app.branch} successfully')
+        
+        
+        # Run git pull to update branch
+        process = run_command("git pull")
+        if process.returncode != 0:
+            app_logger.critical(process.stderr)
+            update_app_status(app)
+            return
+        
+
+        app_logger.info(f'Git pull update on branch {app.branch} successfully')
+
+
+        # Run npm install
+        process = run_command("npm install")
+        if process.returncode != 0:
+            app_logger.critical(process.stderr)
+            update_app_status(app)
+            return
+        
+
+        app_logger.info(f'Project dependencies installed successfully')
+
+
+        try:
+            # Add domain to package.json homepage key
+            with open('package.json', 'r') as package_json_file:
+                package_json_dictionary = json.load(package_json_file)
+            package_json_dictionary['homepage'] = app.get_link()
+
+            # Set dictionary indent to 2
+            new = json.dumps(package_json_dictionary, indent=2)
+
+            # Update package.json back
+            with open('package.json', 'w') as package_json_file:
+                package_json_file.write(new)
+        except Exception as e:
+            app_logger.exception(e)
+            update_app_status(app)
+            return
+
+
+        app_logger.info(f'Project package.json homepage update success')
+
+
+        # Run npm build
+        process = run_command("npm run build")
+        if process.returncode != 0:
+            app_logger.critical(process.stderr)
+            update_app_status(app)
+            return
+        
+
+        app_logger.info(f'Project build is completed')
+
+
+        # Create apache configuration to site available
+        cwd = os.getcwd()
+        template = """
+        <VirtualHost *:80>
+            ServerAdmin admin@""" + f"{app.raw_link()}" + """
+            ServerName """ + f"{app.raw_link()}" + """
+
+            """ + f"DocumentRoot {cwd}/build" + """
+            DirectoryIndex index.html
+
+            <Directory """ + f"{cwd}/build" + """>
+                Options Indexes FollowSymLinks MultiViews
+                AllowOverride All
+                Require all granted
+            </Directory>
+
+            <FilesMatch \\.php$>
+                SetHandler "proxy:unix:/var/run/php/php7.3-fpm.sock|fcgi://localhost"
+            </FilesMatch>
+
+            ErrorLog ${APACHE_LOG_DIR}/""" + f"{app.slug}.log" + """
+            CustomLog ${APACHE_LOG_DIR}/""" + f"{app.slug}.log" + """ combined
+
+            RewriteEngine on
+            RewriteRule ^index\\.html$ - [L]
+            RewriteCond %{REQUEST_FILENAME} !-f
+            RewriteCond %{REQUEST_FILENAME} !-d
+            RewriteRule . /index.html [L]
+
+        </VirtualHost>
+        """
+
+        os.chdir("/etc/apache2/sites-available")
+        
+        with open(f"{app.slug}.conf", 'w') as conf:
+            conf.write(template)
+
+        
+        app_logger.info(f'Completly created web server configuration')
+
+
+        # Enable apache configuration
+        process = run_command(f"a2ensite {app.slug}.conf")
+        if process.returncode != 0:
+            app_logger.critical(process.stderr)
+            update_app_status(app)
+            return
+
+        
+        app_logger.info(f'Website configuration successfully enabled')
+
+
+        # Restart apache server
+        process = run_command(f"sudo apt-get install apache2")
+        if process.returncode != 0:
+            app_logger.critical(process.stderr)
+            update_app_status(app)
+            return
+        
+        update_app_status(app, 'deployed')
+        
+        app_logger.info(f'Website is successfully deployed.')
+
+    except Exception as e:
+        update_app_status(app)
+        app_logger.exception(e)

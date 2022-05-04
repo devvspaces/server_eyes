@@ -1,0 +1,102 @@
+{% extends 'panel/base.html' %}
+
+
+{% block content %}
+
+    <div class="d-flex align-items-center justify-content-between py-5">
+        <div>
+            <h5 class="display-6 fw-normal">{{ domain.domain }}</h5>
+            <p class="fs-6 text-muted fw-bold"><a href="{% url 'panel:domain-list' %}" class='text-decoration-none'>Domain list / </a>{{ main_domain_ip }}</p>
+        </div>
+        <span class="badge bg-{{ domain.status_tag }}">{{ domain.status }}</span>
+    </div>
+
+    <div class="card">
+        <div class="card-header py-3 d-flex align-items-center">
+            <h5 class="mini_tabs_head">Subdomains</h5>
+
+            <a href="{% url 'panel:subdomain-list-update' domain.domain_id %}" class='btn btn-sm btn-secondary reload-btn ms-auto'> <span class='fa fa-refresh'></span> Reload</a>
+            <a href="#" class="btn btn-sm btn-primary ms-1" type="button" data-bs-toggle="modal" data-bs-target="#addSubdomainModal"><span class='fa fa-plus'></span>Add Subdomain</a>
+        </div>
+    </div>
+
+    <div class="card-body domain-name-card-body">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Domain name</th>
+                    <th scope="col">Target</th>
+                    <th scope="col"></th>
+                </tr>
+            </thead>
+            <tbody>
+
+                {% if list_records_processed %}
+
+                    {% for record in list_records_processed %}
+                        <tr>
+                            <th scope="row">{{ forloop.counter }}</th>
+                            <td>{{ record.name }}.{{ domain.domain }}</td>
+                            <td>{{ record.target }}</td>
+                            <td>
+                                <form action="" method='post' class='d-flex align-items-center'>
+                                    {% csrf_token %}
+                                    <a class='btn btn-sm btn-primary icon-only-btn me-1' href='#'> <span class='fa fa-edit'></span></a>
+                                    
+                                    <input type="hidden" value="{{ record.id }}">
+                                    <button class='btn btn-sm btn-danger icon-only-btn'> <span class='fa fa-trash-o'></span></button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    
+                {% else %}
+
+                    <h2>No subdomains available</h2>
+                    
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="addSubdomainModal" tabindex="-1" aria-labelledby="addSubdomainModalAria" aria-hidden="true">
+        <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addSubdomainModalAria">Add Subdomain</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="" method="post" id="add-subdomain-form">
+
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="HostnameID" class="form-label">Hostname*</label>
+                        <input name="name" required type="text" class="form-control" id="HostnameID" aria-describedby="HostnameHelp">
+                        <div class="form-errors"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="ipAddressID" class="form-label">IP Address*</label>
+                        <input name="target" required type="text" class="form-control" id="ipAddressID" value="{{ main_domain_ip }}">
+                        <div class="form-errors"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="ttl_ID" class="form-label">TTL</label>
+                        <input name="ttl_sec" type="text" class="form-control" id="ttl_ID" placeholder='Time to live'>
+                        <small class='text-muted'>Not required, if not provided, default value will be used.</small>
+                        <div class="form-errors"></div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </form>
+            </div>
+        </div>
+        </div>
+    </div>
+
+
+{% endblock content %}

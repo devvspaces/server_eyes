@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     # Custom app
     'services',
     'panel',
+    'deployer',
 
     # CRONTAB
     'django_crontab',
@@ -169,3 +170,20 @@ OFF_EMAIL = True
 PASSWORD_RESET_TIMEOUT = 86400
 
 ADMIN_EMAIL = 'sketcherslodge@gmail.com'
+
+LINODE_PAT = config('LINODE_PAT')
+LINODE_API_VERSION='v4'
+
+GITHUB_API_VERSION = 3
+GITHUB_USER = config('GITHUB_USER')
+GITHUB_PAT = config('GITHUB_PAT')
+
+# CACHES = {
+#     'default': {
+#         'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+#         'LOCATION': 'redis://127.0.0.1:6379',
+#     }
+# }
+
+
+DEPLOY_PROJECTS_DIR = '/home/netrobe/deploys/projects/'

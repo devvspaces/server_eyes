@@ -11,6 +11,103 @@ $(function() {
 		$('#loader_span').removeClass('play')
 	}
 
+	// Custom select box
+	$(document).ready(function() {
+		$('.cSelect').select2();
+	});
+
+	// Event for updating branches on selecting repo
+	$('#repo-input-p').on('select2:select', function (e) {
+		let data = e.params.data;
+
+		// Get the branches string
+    	let branches = data['title']
+
+		// Split to list of branches
+		branches = branches.split(',')
+
+		// Clean all option in branch select
+		$('#branch-input-p').empty()
+
+		// Loop through to add the branch select
+		branches.forEach(branch=>{
+			var data = {
+				id: branch,
+				text: branch
+			};
+			var newOption = new Option(data.text, data.id, false, false);
+			$('#branch-input-p').append(newOption)
+		})
+
+		// Update select2
+		$('#branch-input-p').trigger('change');
+	});
+
+	// Event for updating subdomains on selecting domain
+	$('#domain-input-p').on('select2:select', function (e) {
+		let data = e.params.data;
+
+		// Get the subdomains string
+    	let subdomains = data['title']
+		let domain_link_name = data['text']
+
+		// Split to list of subdomains
+		subdomains = subdomains.split('?')
+
+		// Clean all option in subdomains select
+		$('#subdomain-input-p').empty()
+
+		// Add default data to the select
+		var newOption = new Option('-Choose a Subdomain-', '', false, false);
+		$('#subdomain-input-p').append(newOption)
+
+		// Loop through to add the subdomains select
+		subdomains.forEach(subdomain=>{
+			// Split subdomain to domain link and record id
+			let [domain_link, record_id] = subdomain.split('*')
+			var data = {
+				id: record_id,
+				text: domain_link
+			};
+			var newOption = new Option(data.text, data.id, false, false);
+			$('#subdomain-input-p').append(newOption)
+		})
+
+		// Update select2
+		$('#subdomain-input-p').trigger('change');
+
+		// Update the subdomain-input-new under the select
+		$('#subdomain-input-new .input-group-text').text('.'+domain_link_name)
+	});
+
+
+	// Code for new and select subdomain
+	if ($('#new-subdomain-form-btn').length){
+		$('#new-subdomain-form-btn').click(function(e){
+			// Toggle items visibility
+			$('#subdomain-input-new').removeClass('d-none')
+			$('#subdomain-input-p').next().addClass('d-none')
+
+			// Btns
+			$('#new-subdomain-form-btn').addClass('d-none')
+			$('#select-subdomain-form-btn').removeClass('d-none')
+
+			// Update select2
+			$('#subdomain-input-p').val('').trigger('change');
+		})
+	}
+	if ($('#select-subdomain-form-btn').length){
+		$('#select-subdomain-form-btn').click(function(e){
+			// Toggle items visibility
+			$('#subdomain-input-new').addClass('d-none')
+			$('#subdomain-input-p').next().removeClass('d-none')
+
+			// Btns
+			$('#new-subdomain-form-btn').removeClass('d-none')
+			$('#select-subdomain-form-btn').addClass('d-none')
+		})
+	}
+
 
     /*  Codes for alert popup */
     
@@ -137,7 +234,7 @@ $(function() {
                 $('.log_sheet p').html(message);
 
                 // Create alert
-                createAlert('Logs were pulled successful')
+                createAlert('Logs were pulled successfully')
 			},
 			error: function (jqXHR) {
 				console.log(jqXHR)
@@ -157,6 +254,209 @@ $(function() {
 	if($('#log_form').length){
 		$('#log_form').submit(submitForm);
 	}
+
+	function submitAddSubdomainForm(e) {
+		e.preventDefault()
+		let form = this
+		let formData = $(this).serialize();
+
+		let thisURL = this.action
+
+		// Play loader
+		playLoader()
+
+        // Clear alerts
+        clearAlerts()
+
+		// Get success and error text if there
+		let success_text = $(form).attr('success_text')
+		let error_text = $(form).attr('error_text')
+	
+		$.ajax({
+			method: "POST",
+			url: thisURL,
+			data: formData,
+			success: function (data){
+				// Pause loader
+				stopLoader()
+
+                // Create alert
+				if (success_text){
+					createAlert(success_text)
+				} else {
+					createAlert('New subdomain created successfully, reloading page now.')
+				}
+
+				console.log(data)
+                
+
+				// Reload site after 3 seconds
+				let reload_time = 1000 * 3;
+				setTimeout(function(){
+
+					let redirect = data['redirect'];
+					if (redirect.length){
+						location.href = redirect;
+					} else {
+						location.reload();
+					}
+					
+				}, reload_time)
+			},
+			error: function (jqXHR) {
+				console.log(jqXHR)
+				let data = jqXHR['responseJSON']
+				// Pause loader
+				stopLoader()
+
+				// Check if there are errors
+                let errors = data['errors']
+
+				console.log(errors)
+
+                if (errors){
+                    $('.form-errors').html('');
+                    for (const [key, value] of Object.entries(errors)) {
+						let field = value['field']
+						let reason = value['reason']
+                        if (field != '__all__'){
+                            let input = form.querySelector("[name='" + field + "']")
+                            let new_el = document.createElement('small')
+                            new_el.classList.add('text-danger')
+                            new_el.innerText = reason
+
+							let form_error_div;
+                            
+                            // Get the form error div
+							if (input.parentElement.classList.contains('input-group')){
+								form_error_div = input.parentElement.parentElement.querySelector('.form-errors')
+							} else {
+								form_error_div = input.parentElement.querySelector('.form-errors')
+							}
+                            
+                            form_error_div.appendChild(new_el)
+                        }
+                    }
+                }
+
+                // Create error alert
+				if (error_text){
+					createAlert(error_text, 'danger')
+				} else {
+					createAlert('Error occured while trying to create domain, check errors.', 'danger')
+				}
+                
+			},
+		})
+	}
+
+	if($('#add-subdomain-form').length){
+		$('#add-subdomain-form').submit(submitAddSubdomainForm);
+	}
+
+	if($('#deploy-react-form').length){
+		$('#deploy-react-form').submit(submitAddSubdomainForm);
+	}
+
+
+
+	if ($('#logModalContent').length){
+		// For getting logs on app page
+		var logModalContent = document.getElementById('logModalContent')
+
+		// Get log url
+		let log_url = $('#logModalContent').attr('log')
+
+		logModalContent.addEventListener('show.bs.modal', function (event) {
+			// Play loader
+			playLoader()
+
+			// Clear alerts
+			clearAlerts()
+
+			// Get success and error text if there
+			let success_text = 'Logs are gotten successfully'
+			let error_text = 'Error while getting logs'
+		
+			$.ajax({
+				method: "GET",
+				url: log_url,
+				success: function (data){
+					// Pause loader
+					stopLoader()
+
+					// Create alert
+					createAlert(success_text)
+
+					// Load result into modal
+					let text = data['data'];
+					$('#logModalContent p.content').html(text)
+
+					setTimeout(function(){
+						clearAlerts()
+					}, 5000)
+
+				},
+				error: function (jqXHR) {
+					// Pause loader
+					stopLoader()
+
+					// Create error alert
+					createAlert(error_text, 'danger')
+					
+				},
+			})
+		
+		})
+
+
+		function clearLogs(event) {
+			event.preventDefault()
+
+			let formData = $(this).serialize();
+			
+			// Play loader
+			playLoader()
+
+			// Clear alerts
+			clearAlerts()
+
+			let error_text = 'Error while clearing logs'
+			let success_text = 'Logs cleared successfully'
+		
+			$.ajax({
+				method: "POST",
+				url: log_url,
+				data: formData,
+				success: function (data){
+					// Pause loader
+					stopLoader()
+
+					// Create alert
+					createAlert(success_text)
+
+					// Set result into modal
+					let text = 'No logs yet';
+
+					$('#logModalContent p.content').html(text)
+
+				},
+				error: function (jqXHR) {
+					// Pause loader
+					stopLoader()
+
+					// Create error alert
+					createAlert(error_text, 'danger')
+					
+				},
+			})
+		
+		}
+
+		let logForm = document.querySelector('#logModalContent form')
+		logForm.addEventListener('submit', clearLogs)
+	}
+	
 	
 	
 });

@@ -1,0 +1,151 @@
+{% extends 'panel/base.html' %}
+
+
+{% block content %}
+
+<div class="card mb-5">
+    <div class="card-header py-3 d-flex align-items-center justify-content-between">
+        <h5 class="mini_tabs_head">React App Name</h5>
+        <a href="{% url 'deploy:react' %}" class='btn btn-sm btn-primary'> <span class='fa fa-arrow-left'></span> Back to apps</a>
+    </div>
+</div>
+
+
+<div class="row mb-4">
+    <div class="col-md-7">
+        <div class="card deploy-dets-box my-3">
+            <div class="card-body">
+                <h5 class="mb-3">Project General</h5>
+
+                <div class="info-ps">
+                    <div class="info-p">
+                        <small>Name</small>
+                        <p>{{ app.project_name }}</p>
+                    </div>
+                    <div class="info-p">
+                        <small>Directory</small>
+                        <p>{{ app.get_dir }}</p>
+                    </div>
+                    <div class="info-p">
+                        <small>Deploy Logs</small>
+                        <p>{{ app.get_log_dir }}</p>
+                    </div>
+                    <div class="info-p">
+                        <small>Status</small>
+                        <p class='status-btn {{ app.status }}'><span><i class='fa fa-{{ app.get_status_icon }}'></i></span> {{ app.get_status_display }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer justify-content-start">
+                <a href="{% url 'deploy:deploy-react-app' app.slug %}" class="btn btn-md btn-primary ms-0"><span><i class="fa fa-refresh"></i></span> Redeploy</a>
+                <a href="#" class="btn btn-md btn-outline-danger"><span><i class="fa fa-trash"></i></span> Destroy</a>
+                <a type="button" data-bs-toggle="modal" data-bs-target="#logModalContent" class="btn btn-md btn-outline-secondary"><span><i class="fa fa-info-circle"></i></span> Logs</a>
+            </div>
+        </div>
+    </div>
+
+    
+    
+    <div class="col-md-6">
+        <div class="card deploy-dets-box my-3">
+            <div class="card-body">
+                <h5 class="mb-3">Project Github</h5>
+
+                <div class="info-ps">
+                    <div class="info-p">
+                        <small>Repository</small>
+                        <p>{{ app.repository.name }}</p>
+                    </div>
+                    <div class="info-p">
+                        <small>Branch</small>
+                        <p>{{ app.branch }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <a href="#" class="btn btn-sm btn-outline-primary"><span><i class="fa fa-cloud-download"></i></span> Pull</a>
+                <a href="#" class="btn btn-sm btn-outline-primary"><span><i class="fa fa-edit"></i></span> Edit</a>
+            </div>
+        </div>
+    </div>
+
+    
+
+    <div class="col-md-6">
+        <div class="card deploy-dets-box my-3">
+            <div class="card-body">
+                <h5 class="mb-3">Apache Server</h5>
+
+                <div class="info-ps">
+                    <div class="info-p">
+                        <small>Configuration File</small>
+                        <p>{{ app.get_apache_conf }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <a href="#" class="btn btn-sm btn-secondary"><span><i class="fa fa-pause-circle"></i></span> Disable</a>
+                <a href="#" class="btn btn-sm btn-secondary"><span><i class="fa fa-info-circle"></i></span> Check Logs</a>
+                <a href="#" class="btn btn-sm btn-outline-primary"><span><i class="fa fa-edit"></i></span> Edit</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-7">
+        <div class="card deploy-dets-box my-3">
+            <div class="card-body">
+                <h5 class="mb-3">Domain</h5>
+
+                <div class="info-ps">
+                    <div class="info-p">
+                        <small>Main Domain</small>
+                        <p>{{ app.domain.domain }}</p>
+                    </div>
+                    <div class="info-p">
+                        <small>Subdomain</small>
+                        <p>{{ app.subdomain.name }}</p>
+                    </div>
+                    <div class="info-p">
+                        <small>Link</small>
+                        <p><a class='link-with-icon' href='{{ app.get_link }}' target="blank"><span><i class="fa fa-link"></i></span>{{ app.get_link }}</a></p>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <a href="#" class="btn btn-sm btn-outline-primary"><span><i class="fa fa-edit"></i></span> Edit</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Log Modal -->
+<div class="modal fade" id="logModalContent" tabindex="-1" aria-labelledby="logModal" aria-hidden="true" log="{% url 'deploy:deploy-app-logs' app.slug %}">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="logModal">Deploy Logs</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+
+                <p class='content'>
+                    No logs yet
+                </p>
+                
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <form id='logForm' method="POST">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary clearLogs">Clear Logs</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+    
+
+
+    
+{% endblock content %}
