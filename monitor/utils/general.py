@@ -813,4 +813,4 @@ def redeploy_process(app):
 
     except Exception as e:
         update_app_status(app)
-        app_logger.exception(e)
+        err_logger.exception(e)
