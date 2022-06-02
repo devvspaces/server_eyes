@@ -1145,10 +1145,14 @@ def enable_web_server(app, app_logger=None, client=None):
     
 
     # If client is not passed establish new connection
+    created_new_client = False
     if client is None:
         # Connect with server client
         client, dir_obj = fetch_server_client(server)
 
+        # This is used to monitor whether to close client connection after done with process if client was created here
+        # Else leave client closing to the user passing it
+        created_new_client = True 
     
     
     try:
@@ -1178,7 +1182,10 @@ def enable_web_server(app, app_logger=None, client=None):
 
     finally:
         app_logger.info('Finished Enabling server\n\n\n')
-        client.close()
+
+        # If client was created here make sure to close it
+        if created_new_client:
+            client.close()
 
 
 def start_redeploy_process(app):
