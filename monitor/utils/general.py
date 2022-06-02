@@ -1130,24 +1130,55 @@ def myLogger(name, file:str):
 
 
 # Enable web server configuration
-def enable_web_server(app_logger, client, ):
-    # First check if enabled file already exists
-    possible_enabled_file_name = server_conf_location.replace('available', 'enabled')
-    file_exists = client.file_exists(possible_enabled_file_name)
+def enable_web_server(app, app_logger=None, client=None):
 
-    app_logger.info(f"Got the value {file_exists} from check file exists")
-
-    if not file_exists:
-        if server.web_server == 'apache':
-            command = f"a2ensite {app.slug}.conf"
-        elif server.web_server == 'nginx':
-            command = f"ln -s {server_conf_location} /etc/nginx/sites-enabled"
-
-        stdout = client.execute(command, sudo=True)
-        app_logger.info(f'Website configuration successfully enabled')
+    # Get app server
+    server = app.server
     
-    else:
-        app_logger.info(f'Website configuration already successfully enabled')
+    # If logger is not passed get new log
+    if app_logger is None:
+        # Get deploy log
+        log_file = app.get_log_file()
+
+        # Create or get log
+        app_logger = myLogger('appLogger', log_file)
+    
+
+    # If client is not passed establish new connection
+    if client is None:
+        # Connect with server client
+        client, dir_obj = fetch_server_client(server)
+
+    
+    
+    try:
+        # Server configuration location
+        server_conf_location :str = app.get_web_server_conf()
+
+        # First check if enabled file already exists
+        possible_enabled_file_name = server_conf_location.replace('available', 'enabled')
+        file_exists = client.file_exists(possible_enabled_file_name)
+
+        if not file_exists:
+            if server.web_server == 'apache':
+                command = f"a2ensite {app.slug}.conf"
+            elif server.web_server == 'nginx':
+                command = f"ln -s {server_conf_location} /etc/nginx/sites-enabled"
+
+            client.execute(command, sudo=True)
+            app_logger.info(f'Website configuration successfully enabled')
+        
+        else:
+            app_logger.info(f'Website configuration already successfully enabled')
+        
+    except Exception as e:
+        app_logger.info(f'Error while trying to Enable web server')
+        update_app_status(app)
+        app_logger.exception(e)
+
+    finally:
+        app_logger.info('Finished Enabling server\n\n\n')
+        client.close()
 
 
 def start_redeploy_process(app):
@@ -1330,7 +1361,7 @@ def start_redeploy_process(app):
         possible_enabled_file_name = server_conf_location.replace('available', 'enabled')
         file_exists = client.file_exists(possible_enabled_file_name)
 
-        app_logger.info(f"Got the value {file_exists} from check file exists")
+        
 
         if not file_exists:
             if server.web_server == 'apache':
