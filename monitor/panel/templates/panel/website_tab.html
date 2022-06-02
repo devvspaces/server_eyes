@@ -13,7 +13,7 @@
                     <span class="icon {{ website.get_last_status }}"></span>
                     <span class="detail">{{ website.get_last_status.capitalize }}</span>
                 </div>
-                <a href="{% url 'panel:recheck_website' website.conf_filename %}" class="btn btn-sm btn-primary">Reload</a>
+                <a href="{% url 'panel:recheck_website' website.conf_filename %}" class="btn btn-sm btn-primary">Recheck</a>
             </div>
             <div class="bottom">
                 <p>Last checked: {{ website.last_checked }}</p>
@@ -21,11 +21,43 @@
         </div>
     </div>
 
-    <form class="filter_box" method='post' id='log_form' action="{% url 'panel:get_log_website' %}">
+    <div class="table-box my-5">
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Link</th>
+                    <th scope="col">Last Checked</th>
+                    <th scope="col">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+
+                
+                {% for web in website.websiteurl_set.all %}
+                    <tr>
+                        <th scope="row">{{ forloop.counter }}</th>
+                        <td><a href="http://{{ web.url }}" target="_blank">{{ web.url }}</a></td>
+                        <td>{{ web.last_checked }}</td>
+                        <td>
+                            <div class="stat">
+                                <span class="icon {{ web.get_last_status }}"></span>
+                                <span class="detail">{{ web.get_last_status.capitalize }}</span>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+                    
+                
+            </tbody>
+        </table>
+
+    </div>
+
+    <form class="filter_box mt-5" method='post' id='log_form' action="{% url 'panel:get_log_website' website.conf_filename %}">
 
         {% csrf_token %}
-        <input name='conf_filename' type='hidden' value="{{ website.conf_filename }}"/>
-
         <div class="mb-3">
             <label for="log_type">Log type</label>
             <select name="log_type" class="form-select" id="log_type">

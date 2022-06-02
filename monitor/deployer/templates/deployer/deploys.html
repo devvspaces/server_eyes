@@ -5,35 +5,44 @@
     <div class="card">
         <div class="card-header py-3 d-flex align-items-center justify-content-between">
             <h5 class="mini_tabs_head">React Apps</h5>
-            <a href="{% url 'deploy:react-new' %}" class='btn btn-sm btn-primary'> <span class='fa fa-codepen'></span> Deploy new app</a>
+            <a href="{% url 'deploy:react-new' %}" class='btn btn-primary'> <span class='fa fa-codepen'></span> Deploy new app</a>
         </div>
     </div>
 
     <div class="apps-list">
 
-        {% comment %} <h5 class="my-5">No apps are deployed yet</h5> {% endcomment %}
+
+        {% if apps.count == 0 %}
+
+            <div class="bg-secondary text-light rounded p-4 my-5">
+                <h5>No React apps are deployed yet</h5>
+            </div>
+
+        {% endif %}
+
 
         {% for app in apps %}
-        <div class="app-box">
-            <div class="app-content">
-                <h6>Project Name</h6>
-                <p>{{ app.project_name }}</p>
-            </div>
-            <div class="app-content">
-                <h6>Project Location</h6>
-                <p>{{ app.get_dir }}</p>
-            </div>
-            <div class="app-content">
-                <h6>Conf. Location</h6>
-                <p>{{ app.get_apache_conf }}</p>
-            </div>
+            <div class="app-box">
+                <div class="app-content">
+                    <h6>Project Name</h6>
+                    <p>{{ app.project_name }}</p>
+                </div>
+                <div class="app-content">
+                    <h6>Project Location</h6>
+                    <p>{{ app.get_app_dir }}</p>
+                </div>
+                <div class="app-content">
+                    <h6>Conf. Location</h6>
+                    <p>{{ app.get_apache_conf }}</p>
+                </div>
 
-            <div class="app-top-btn">
-                <p class="badge status-btn {{ app.status }}">{{ app.get_status_display }}</p>
-                <a href="{% url 'deploy:react-app' app.slug %}" class="btn btn-primary">View App</a>
+                <div class="app-top-btn">
+                    <p class="badge status-btn {{ app.status }}">{{ app.get_status_display }}</p>
+                    <a href="{% url 'deploy:react-app' app.slug %}" class="btn btn-primary">View App</a>
+                </div>
             </div>
-        </div>
         {% endfor %}
+
 
     </div>
 

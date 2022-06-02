@@ -458,5 +458,16 @@ $(function() {
 	}
 	
 	
+
+	if ($('.are-you-sure-delete').length){
+		$('.are-you-sure-delete').click(function(e){
+			e.preventDefault()
+
+			let value = confirm("Are you sure you want to perform this account?");
+			if (value){
+				location.href = $(this).attr('href')
+			}
+		})
+	}
 	
 });

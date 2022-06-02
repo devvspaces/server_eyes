@@ -16,6 +16,12 @@ body{
     display: flex;
     align-items: center;
 }
+.btn-sm{
+    font-size: .7rem;
+}
+.btn-md{
+    font-size: .9rem;
+}
 .btn span{
     margin-right: .3rem;
 }
@@ -29,6 +35,9 @@ body{
 
 p{
     margin: 0;
+}
+a{
+    text-decoration: none;
 }
 
 
@@ -54,10 +63,13 @@ p{
     flex-direction: column;
     text-align: center;
 }
+.mini_tabs .mini_tab.not_active{
+    background-color: var(--bs-danger);
+}
 .mini_tabs .mini_tab p{
     font-size: .75rem;
 }
-.mini_tabs .mini_tab:hover {
+.mini_tabs .mini_tab:not(.not_active):hover {
     transform: translateY(-5px);
     background-color: rgb(27, 62, 98);
 }
@@ -133,10 +145,11 @@ section{
     font-size: .8rem;
 }
 
-.log_tab .status_reload .top .stat{
+.stat{
     display: flex;
     align-items: center;
     font-weight: bold;
+    font-size: .8rem;
 }
 .log_tab .status_reload .top{
     display: flex;
@@ -144,7 +157,7 @@ section{
     justify-content: right;
     margin-bottom: .4rem;
 }
-.log_tab .status_reload .top .icon{
+.stat .icon{
     display: block;
     width: 10px;
     height: 10px;
@@ -152,7 +165,7 @@ section{
     background-color: var(--bs-gray);
     margin-right: .2rem;
 }
-.log_tab .status_reload .top .icon.active{
+.stat .icon.active{
     background-color: var(--bs-success);
 }
 .log_tab .status_reload .top .btn{
@@ -483,4 +496,27 @@ background: #555;
 
 .modal-dialog {
     max-width: 750px;
+}
+
+.table-box{
+    padding: 1rem;
+    border-radius: .5rem;
+    background-color: #fff;
+}
+
+.table>:not(caption)>*>* {
+    border-bottom-width: 0;
+}
+
+
+.side-bar-btns a{
+    margin-bottom: .5rem;
+    font-size: .7rem;
+    text-align: center;
+    display: block;
+}
+.form-errors small{
+    color: var(--bs-danger);
+    font-size: .7rem;
+    margin-top: .5rem;
 }

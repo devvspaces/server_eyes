@@ -1,0 +1,37 @@
+{% extends 'panel/base.html' %}
+
+
+{% block content %}
+
+<div class="card mb-5">
+    <div class="card-header py-3 d-flex align-items-center justify-content-between">
+        <h5 class="mini_tabs_head">Github Account</h5>
+        <a href="{% url 'panel:github_detail' title %} " class='btn btn-sm btn-primary'> <span class='fa fa-arrow-left'></span> Back</a>
+    </div>
+</div>
+    
+
+<form class="custom-deploy-form" method='post'>
+    {% csrf_token %}
+    <legend class="display-6">Update GitHub Account</legend>
+
+    {% include 'panel/similar_github_add.html' %}
+
+    <div class="mb-3">
+        <label for="#input-p3">Current Password *</label>
+        <input type="password" name="needed_password" id="input-p3" class="form-control" placeholder="Provide your current password to update" value="{{ form.needed_password.value }}">
+        <div class="form-errors">
+            
+            {% for error in form.needed_password.errors %}
+                <small>{{ error }}</small>
+            {% endfor %}
+                
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-success px-3 mt-5 fw-bold">Update</button>
+
+</form>
+
+    
+{% endblock content %}

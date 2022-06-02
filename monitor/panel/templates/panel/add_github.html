@@ -1,0 +1,39 @@
+{% extends 'panel/base.html' %}
+
+
+{% block content %}
+
+<div class="card mb-5">
+    <div class="card-header py-3 d-flex align-items-center justify-content-between">
+        <h5 class="mini_tabs_head">Github Account</h5>
+        <a href="{% url 'panel:dashboard' %} " class='btn btn-sm btn-primary'> <span class='fa fa-arrow-left'></span> Back</a>
+    </div>
+</div>
+    
+
+<form class="custom-deploy-form" method='post'>
+    {% csrf_token %}
+    <legend class="display-6">Add GitHub Account</legend>
+
+    {% include 'panel/similar_github_add.html' %}
+
+    <div class="mb-3">
+        <label class="d-block" for="#input-p3">Password *</label>
+        <small class="d-block"><strong>NOTE</strong>: <i>Currently this should be your PAT (Personal Access token from github). <a href="https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token" target="_blank">Creating a personal access token.</a></i></small>
+        <small class="d-block mb-2"><i>It will be better if your personal access token will live for a long time</i></small>
+        <input type="password" name="password" id="input-p3" class="form-control" placeholder="Provide your current password to update" value="{{ form.password.value }}">
+        <div class="form-errors">
+            
+            {% for error in form.password.errors %}
+                <small>{{ error }}</small>
+            {% endfor %}
+                
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary px-3 mt-5 fw-bold">Add Account</button>
+
+</form>
+
+    
+{% endblock content %}

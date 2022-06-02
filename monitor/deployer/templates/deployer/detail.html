@@ -5,17 +5,17 @@
 
 <div class="card mb-5">
     <div class="card-header py-3 d-flex align-items-center justify-content-between">
-        <h5 class="mini_tabs_head">React App Name</h5>
+        <h5 class="mini_tabs_head">React App: {{ app.project_name }}</h5>
         <a href="{% url 'deploy:react' %}" class='btn btn-sm btn-primary'> <span class='fa fa-arrow-left'></span> Back to apps</a>
     </div>
 </div>
 
 
 <div class="row mb-4">
-    <div class="col-md-7">
+    <div class="col-md-12">
         <div class="card deploy-dets-box my-3">
             <div class="card-body">
-                <h5 class="mb-3">Project General</h5>
+                <h5 class="mb-3">Project</h5>
 
                 <div class="info-ps">
                     <div class="info-p">
@@ -24,11 +24,11 @@
                     </div>
                     <div class="info-p">
                         <small>Directory</small>
-                        <p>{{ app.get_dir }}</p>
+                        <p>{{ app.get_app_dir }}</p>
                     </div>
                     <div class="info-p">
-                        <small>Deploy Logs</small>
-                        <p>{{ app.get_log_dir }}</p>
+                        <small>Deploy log</small>
+                        <p>{{ app.get_log_file }}</p>
                     </div>
                     <div class="info-p">
                         <small>Status</small>
@@ -37,9 +37,18 @@
                 </div>
             </div>
             <div class="card-footer justify-content-start">
-                <a href="{% url 'deploy:deploy-react-app' app.slug %}" class="btn btn-md btn-primary ms-0"><span><i class="fa fa-refresh"></i></span> Redeploy</a>
-                <a href="#" class="btn btn-md btn-outline-danger"><span><i class="fa fa-trash"></i></span> Destroy</a>
-                <a type="button" data-bs-toggle="modal" data-bs-target="#logModalContent" class="btn btn-md btn-outline-secondary"><span><i class="fa fa-info-circle"></i></span> Logs</a>
+                <a href="{% url 'deploy:deploy-react-app' app.slug %}" class="btn btn-primary ms-0"><span><i class="fa fa-refresh"></i></span> Redeploy</a>
+                <a href="#" class="btn btn-outline-danger"><span><i class="fa fa-trash"></i></span> Destroy</a>
+                <a type="button" data-bs-toggle="modal" data-bs-target="#logModalContent" class="btn btn-outline-secondary"><span><i class="fa fa-info-circle"></i></span> Logs</a>
+
+                
+                {% if not app.auto_redeploy %}
+                    <a href="{% url 'deploy:setup-redeploy' app.slug %}" class="btn btn-outline-primary"><span><i class="fa fa-check"></i></span> Activate Auto Redeploy</a>
+                {% else %}
+                    <a href="{% url 'deploy:setup-redeploy' app.slug %}" class="btn btn-outline-danger"><span><i class="fa fa-times"></i></span> Deactivate Auto Redeploy</a>
+                {% endif %}
+                    
+                
             </div>
         </div>
     </div>
@@ -58,7 +67,15 @@
                     </div>
                     <div class="info-p">
                         <small>Branch</small>
-                        <p>{{ app.branch }}</p>
+
+                        
+                        {% if app.branch %}
+                            <p>{{ app.branch }}</p>
+                        {% else %}
+                            <p>Master Branch</p>
+                        {% endif %}
+                            
+                        
                     </div>
                 </div>
             </div>
@@ -74,12 +91,12 @@
     <div class="col-md-6">
         <div class="card deploy-dets-box my-3">
             <div class="card-body">
-                <h5 class="mb-3">Apache Server</h5>
+                <h5 class="mb-3">Web Server</h5>
 
                 <div class="info-ps">
                     <div class="info-p">
                         <small>Configuration File</small>
-                        <p>{{ app.get_apache_conf }}</p>
+                        <p>{{ app.get_web_server_conf }}</p>
                     </div>
                 </div>
             </div>
@@ -129,7 +146,7 @@
             </div>
             <div class="modal-body">
 
-                <p class='content'>
+                <p class='content' style="white-space: break-spaces;">
                     No logs yet
                 </p>
                 

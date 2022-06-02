@@ -1,28 +1,21 @@
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.contrib import messages
-from django.db.models import Q
+from django.db import models
+from django.http import HttpResponseBadRequest
 from django.shortcuts import redirect
 from django.urls import reverse
-from django.views.generic import ListView
 
-from agency.models import Property
-from account.models import Profile
+from panel.models import Server
 
 from utils.general import printt as print
-from utils.general import choices_to_dict
+from utils.general import cryptor
 
 
-class PropertyCreateMixin:
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["status_choices"] = choices_to_dict(Property.STATUS)
-        context["property_type"] = choices_to_dict(Property.PROPERTY_TYPE)
-        context["building_age"] = choices_to_dict(Property.BUILDING_AGE)
-        return context
-    
-    def form_invalid(self, form):
-        print(form.errors)
-        return super().form_invalid(form)
+class SelectServerException(Exception):
+    """Server is not selected"""
+
+    def __init__(self):
+        super().__init__('SelectServerException')
 
 class CustomTestMixin(UserPassesTestMixin):
 
@@ -41,83 +34,40 @@ class CustomTestMixin(UserPassesTestMixin):
         return redirect('dashboard:home')
 
 
-class CustomerTestMixin(CustomTestMixin):
 
-    def test_func(self):
-        return self.request.user.is_customer
+# Get server and add to context
+class GetServer(object):
+    select_server_redirect = True
+    server = None
 
-class NoStaffTestMixin(CustomTestMixin):
+    # Get's the server slug name from session and get's server from db
+    def get_server(self):
+        # Get server name
+        server_name = self.kwargs.get('server_name')
+        if not server_name:
 
-    def test_func(self):
-        return not self.request.user.is_in_staff
+            # Try to get server name from session
+            server_name = self.request.session.get('server_name')
 
-
-class AllTestFunc:
-    def __init__(self):
-        self.object = None
-
-    def test_func(self):
-        # Get the order id
-        print('This ran right here')
-        order_id = self.kwargs.get('order_id')
-        if self.request.user.is_in_staff:
-            self.object = Order.objects.get(label__exact=order_id)
-            return True
-        elif self.request.user.is_customer:
-            # Check if the order belongs to the customer
-            qset = Order.objects.filter(label__exact=order_id, customer=self.request.user.customer)
-            if qset.exists():
-                self.object = qset.first()
-                return True
-        elif self.request.user.is_nerd:
-            # Check if the order belongs to the nerd
-            qset = Order.objects.filter(label__exact=order_id, nerd=self.request.user.nerd)
-            if qset.exists():
-                self.object = qset.first()
-                return True
-
-
-class CheckNerdOwnsOrder:
-    def __init__(self):
-        self.object = None
-
-    def test_func(self):
-        # Get the order id
-        order_id = self.kwargs.get('order_id')
-        if self.request.user.is_nerd:
-            # Check if the order belongs to the nerd
-            qset = Order.objects.filter(label__exact=order_id, nerd=self.request.user.nerd)
-            if qset.exists():
-                self.object = qset.first()
-                return True
-
-
-class WorkListMixin(ListView):
-    model = Profile
-    context_object_name = 'agents'
-    paginate_by = 10
-    account_type = 'estate_agent'
-
-    def get_queryset(self):
-        # time.sleep(4)
-        submit = self.request.GET.get("submit")
-        if submit:
-            city = self.request.GET.get("city")
-            state = self.request.GET.get("state")
-            agent = self.request.GET.get("agent")
-
-            return self.model.objects.filter(Q(city__icontains=city) & Q(state__icontains=state) & Q(fullname__icontains=agent) & Q(account_type=self.account_type))
-
-        return self.model.objects.filter(account_type=self.account_type)
-
-
-
-class CheckUserMembership:
-    def get(self, request, *args, **kwargs):
-        if self.request.user.get_membership():
-            return super().get(request, *args, **kwargs)
+            if not server_name:
+                if self.select_server_redirect:
+                    raise SelectServerException
         
-        messages.warning(request, 'You have no active plan')
-        return redirect('dash:board')
+        try:
+            if server_name:
+                # Get server obj
+                server = Server.objects.get(slug_name=server_name)
+                self.server = server
 
+                return server
+        
+        except Server.DoesNotExist:
+            raise SelectServerException
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Get server name and Add server to context
+        context["server"] = self.get_server()
+
+        return context

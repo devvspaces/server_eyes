@@ -1,0 +1,120 @@
+{% extends 'panel/base.html' %}
+
+
+{% block content %}
+
+<div class="card">
+    <div class="card-header py-3">
+        <h6 class="mini_tabs_head">Services</h6>
+    </div>
+
+    <div class="card-body">
+        <div class="mini_tabs">
+
+            {% for service in services %}
+            
+            <a href="{% url 'panel:service' service.service_name %}" class="mini_tab">
+                <h6>{{ service.name }}</h6>
+            </a>
+
+            {% endfor %}
+
+            {% if services.count == 0 %}
+            <h5 class='py-4'>No services added yet</h5>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+
+
+<div class="card mt-4">
+    <div class="card-header py-3 d-flex align-items-center">
+        <h6 class="mini_tabs_head">Websites</h6>
+        <div class="ms-auto d-flex align-items-center">
+            <a href="{% url 'panel:websites_recheck' server.slug_name %}" class="btn btn-sm btn-primary">Recheck</a>
+            <a href="{% url 'panel:websites_refresh' server.slug_name %}" class="btn btn-sm btn-primary ms-2">Refresh</a>
+        </div>
+    </div>
+
+    <div class="card-body">
+        <div class="mini_tabs">
+
+            {% for website in websites %}
+            
+            <a href="{% url 'panel:website' server.slug_name website.conf_filename %}" class="mini_tab
+            {% if not website.active %}
+                not_active
+            {% endif %}
+            ">
+                <h6>{{ website.name }}</h6>
+                
+                {% if website.last_checked is None %}
+                    <p>Not Checked Yet</p>
+                {% else %}
+                    <p>{{ website.last_checked }}</p>
+                {% endif %}
+                
+            </a>
+
+            {% endfor %}
+
+            {% if websites.count == 0 %}
+            <h5 class='py-4'>No websites added yet</h5>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header py-3">
+        <h6 class="mini_tabs_head">General</h6>
+    </div>
+
+    <div class="card-body">
+        <div class="mini_tabs">
+
+            
+            <a href="{% url 'panel:domain-list' %}" class="mini_tab">
+                <h6>Domain Lists</h6>
+            </a>
+
+            <a href="#" class="mini_tab">
+                <h6>File Manager</h6>
+                <p class='fw-bold text-muted'>Coming soon!</p>
+            </a>
+
+        </div>
+    </div>
+</div>
+
+
+<div class="card mt-4">
+    <div class="card-header py-3">
+        <h6 class="mini_tabs_head">Deploy Apps</h6>
+    </div>
+
+    <div class="card-body">
+        <div class="mini_tabs">
+
+            
+            <a href="#" class="mini_tab">
+                <h6>Python</h6>
+                <p class='fw-bold text-muted'>Coming soon!</p>
+            </a>
+
+            <a href="#" class="mini_tab">
+                <h6>PHP</h6>
+                <p class='fw-bold text-muted'>Coming soon!</p>
+            </a>
+
+            <a href="{% url 'deploy:react' %}" class="mini_tab">
+                <h6>React</h6>
+            </a>
+
+        </div>
+    </div>
+</div>
+
+{% endblock content %}

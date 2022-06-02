@@ -33,10 +33,22 @@
 
 
         <nav class="navbar navbar-dark bg-dark py-3">
-            <div class="container-fluid">
-                <a href="{% url 'panel:dashboard' %}" class="navbar-brand mb-0 h2">Spacepen Panel</a>
+            <div class="container-fluid d-flex align-items-center justify-content-between">
+                
+                
+                {% if server %}
+                    <a href="{% url 'panel:dashboard' %}" class="navbar-brand mb-0 h2">{{ server.name.capitalize }} Dashboard</a>
+                {% else %}
+                    <a href="{% url 'panel:dashboard' %}" class="navbar-brand mb-0 h2">Monitor Panel</a>
+                {% endif %}
 
-                <a href="{% url 'panel:logout' %}" class="btn btn-sm btn-danger">Logout</a>
+                <div class="d-flex">
+                    {% if server %}
+                        <a href="{% url 'panel:server_page' server.slug_name %}" class="btn btn-md btn-primary">Server Dashboard</a>
+                    {% endif %}
+
+                    <a href="{% url 'panel:logout' %}" class="btn btn-md btn-danger ms-2">Logout</a>
+                </div>
             </div>
         </nav>
 

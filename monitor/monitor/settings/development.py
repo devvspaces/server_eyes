@@ -1,6 +1,7 @@
 from .base import *
 
-ALLOWED_HOSTS = ['*']
+ngrok = '3467-105-112-209-212.eu.ngrok.io'
+ALLOWED_HOSTS = ['*', ngrok]
 
 
 EMAIL_BACKEND= 'django.core.mail.backends.smtp.EmailBackend'
@@ -14,3 +15,8 @@ DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='')
 DEFAULT_COMPANY_EMAIL = config('DEFAULT_COMPANY_EMAIL', default='')
 
 TEAM_KEY = config('TEAM_KEY')
+
+
+CSRF_TRUSTED_ORIGINS = [
+    f'https://{ngrok}'
+]

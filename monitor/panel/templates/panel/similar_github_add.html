@@ -1,0 +1,35 @@
+<div class="mb-3">
+    <label for="#input-p0">Github Username</label>
+    <input type="text" name="username" id="input-p0" class="form-control" value="{{ form.username.value }}">
+    <div class="form-errors">
+        
+        {% for error in form.username.errors %}
+            <small>{{ error }}</small>
+        {% endfor %}
+            
+    </div>
+</div>
+
+<div class="mb-3">
+    <label for="#input-p1">Organization White List</label>
+    <input type="text" name="white_list_organizations" id="input-p1" class="form-control" value="{{ form.white_list_organizations.value }}">
+    <div class="form-errors">
+        
+        {% for error in form.white_list_organizations.errors %}
+            <small>{{ error }}</small>
+        {% endfor %}
+            
+    </div>
+</div>
+
+<div class="mb-3">
+    <label for="#input-p2">Organization Black List</label>
+    <input type="text" name="black_list_organizations" id="input-p2" class="form-control" value="{{ form.black_list_organizations.value }}">
+    <div class="form-errors">
+        
+        {% for error in form.black_list_organizations.errors %}
+            <small>{{ error }}</small>
+        {% endfor %}
+            
+    </div>
+</div>

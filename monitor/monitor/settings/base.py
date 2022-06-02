@@ -38,6 +38,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'panel.middleware.ServerSelectMiddleware',
 ]
 
 ROOT_URLCONF = 'monitor.urls'
@@ -177,6 +178,7 @@ LINODE_API_VERSION='v4'
 GITHUB_API_VERSION = 3
 GITHUB_USER = config('GITHUB_USER')
 GITHUB_PAT = config('GITHUB_PAT')
+GITHUB_WEBHOOK_SECRET = config('GITHUB_WEBHOOK_SECRET')
 
 # CACHES = {
 #     'default': {
@@ -187,3 +189,13 @@ GITHUB_PAT = config('GITHUB_PAT')
 
 
 DEPLOY_PROJECTS_DIR = '/home/netrobe/deploys/projects/'
+
+
+WEB_ENABLED_PATH = {
+    'apache': {
+        'enabled_path': '/etc/apache2/sites-enabled',
+    },
+    'nginx': {
+        'enabled_path': '/etc/nginx/sites-enabled',
+    }
+}

@@ -12,13 +12,13 @@
             </li>
 
             <li>
-                <p class="head">Ip Address</p>
-                <p class="content">Username</p>
+                <p class="head">Server IP Address</p>
+                <p class="content">{{ server.ip_address }}</p>
             </li>
 
             <li>
                 <p class="head">Home Directory</p>
-                <p class="content">/home/team/</p>
+                <p class="content">{{ server.get_home_directory }}</p>
             </li>
 
             <li>
@@ -28,22 +28,22 @@
 
             <li>
                 <p class="head">Server name</p>
-                <p class="content">Ubuntu</p>
+                <p class="content">{{ server.name }}</p>
             </li>
 
             <li>
-                <p class="head">Apache Version</p>
-                <p class="content">Username</p>
+                <p class="head">Server OS</p>
+                <p class="content">Coming soon!</p>
             </li>
 
             <li>
-                <p class="head">SQL Version</p>
-                <p class="content">Username</p>
+                <p class="head">Default Web Server</p>
+                <p class="content">{{ server.get_web_server_display }}</p>
             </li>
 
             <li>
-                <p class="head">PHP Version</p>
-                <p class="content">Username</p>
+                <p class="head">Web Server Version</p>
+                <p class="content">Coming soon!</p>
             </li>
 
 

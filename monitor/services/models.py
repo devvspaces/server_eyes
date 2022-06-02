@@ -36,14 +36,19 @@ class Service(models.Model):
 
 
 class Website(models.Model):
-    name = models.CharField(max_length=40)
+    server = models.ForeignKey('panel.Server', on_delete=models.CASCADE, null=True)
 
-    # These data are without their extension
-    conf_filename = models.CharField(max_length=100, unique=True)
-    log_filename = models.CharField(max_length=100)
+    name = models.CharField(max_length=200)
+    conf_filename = models.CharField(max_length=200, unique=True)
 
-    website_link = models.URLField(unique=True)
-    active = models.BooleanField(default=True)
+    # This will be the file full paths
+    access_log = models.TextField(blank=True)
+    error_log = models.TextField(blank=True)
+
+    # Other logs (first useful for apache configurations) (this will be used to store json string)
+    other_logs = models.TextField(blank=True)
+
+    active = models.BooleanField(default=False)
     last_checked = models.DateTimeField(null=True, blank=True, editable=False)
 
     def __str__(self) -> str:
@@ -51,25 +56,24 @@ class Website(models.Model):
     
     # Get the location of the website conf file
     def get_conf_full_path(self):
-        return f"/etc/apache2/sites-enabled/{self.conf_filename}.conf"
+        return f"/etc/apache2/sites-enabled/{self.conf_filename}"
     
-    # Get the full path to the log of the website
-    def get_log_full_path(self):
-        return f"/var/log/apache2/{self.log_filename}"
+    def get_access_log(self):
+        return self.access_log
+    
+    def get_error_log(self):
+        return self.error_log
 
     # Recheck the status of the website
     def recheck(self):
-        status = get_website_state('http://'+self.website_link)
-        if status:
-            self.active = True
-        else:
-            self.active = False
-        self.last_checked = timezone.now()
-        self.save()
+        # Get all website url under website
+        urls = self.websiteurl_set.all()
+        for url in urls:
+            url.recheck()
     
     # Get the logs of the website
-    def get_logs(self):
-        return get_website_logs(self.get_log_full_path())
+    def get_logs(self, log_type:str):
+        return get_website_logs(self, log_type)
     
     # Get the status of the website in text
     def get_last_status(self) -> str:
@@ -77,3 +81,38 @@ class Website(models.Model):
     
     def get_absolute_url(self):
         return reverse('panel:website', args=[self.conf_filename])
+
+
+class WebsiteUrl(models.Model):
+    website = models.ForeignKey(Website, on_delete=models.CASCADE)
+    url = models.CharField(max_length=200)
+
+    active = models.BooleanField(default=True)
+    last_checked = models.DateTimeField(null=True, blank=True, editable=False)
+
+
+    # Recheck the status of the website
+    def recheck(self):
+        status = get_website_state('http://' + self.url)
+        if status:
+            self.active = True
+
+            # Update parent to active too
+            self.website.active = True
+            
+        else:
+            self.active = False
+        
+        self.website.last_checked = timezone.now()
+        self.website.save()
+        self.last_checked = timezone.now()
+        self.save()
+    
+
+    # Get the status of the website in text
+    def get_last_status(self) -> str:
+        return 'active' if self.active else 'inactive'
+        
+
+    def __str__(self) -> str:
+        return self.url

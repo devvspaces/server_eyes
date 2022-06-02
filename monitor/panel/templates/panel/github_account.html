@@ -1,0 +1,72 @@
+{% extends 'panel/base.html' %}
+
+
+{% block content %}
+
+<div class="my-4 d-flex">
+    <div>
+        <h4 class="mb-3">{{ github_account.username }}</h4>
+
+        <p class="fw-light mb-2">Created: {{ github_account.created }}</p>
+        <p class="fw-light mb-2">Last Updated: {{ github_account.updated }}</p>
+    </div>
+
+    <div class="buttons side-bar-btns ms-auto">
+        <a href="{% url 'panel:github_update' github_account.username %}" class="btn btn-primary btn-sm">Edit</a>
+        <a href="{% url 'panel:github_delete' github_account.username %}" class="btn btn-danger btn-sm are-you-sure-delete">Delete</a>
+        <a href="{% url 'panel:update_github_accounts' github_account.username %}" class="btn btn-primary btn-sm">Update Accounts</a>
+    </div>
+</div>
+
+
+{% for user_account in repository_users %}
+
+
+    {% with user_account.repository_set.all as repository %}
+
+        <div class="card mb-3">
+            <div class="card-header py-3 d-flex">
+                <h6 class="mini_tabs_head">{{ user_account.user }} - Repository ({{ repository.count }})</h6>
+
+                <div class="ms-auto d-flex align-items-center">
+                    <a href="{% url 'panel:github_update_user' github_account.username user_account.user %}" class="btn btn-sm btn-primary">Edit</a>
+                    <a href="{% url 'panel:update_repos' github_account.username user_account.user %}" class="btn btn-sm btn-secondary ms-2">Update Repository</a>
+                </div>
+            </div>
+
+            <div class="card-body">
+                <div class="mini_tabs">
+
+                    {% for repo in repository %}
+                    
+                        <a href="{{ repo.clone_url }}" target="_blank" class="mini_tab">
+                            <h6>{{ repo.name }}</h6>
+                            <p>Master Branch: {{ repo.default_branch }}</p>
+                            <p>Branches: {{ repo.branch_count }}</p>
+                        </a>
+
+                    {% endfor %}
+
+                    {% if repository.count == 0 %}
+                        <h5 class='py-4'>No Repository added yet</h5>
+                    {% endif %}
+
+                </div>
+            </div>
+        </div>
+        
+    {% endwith %}
+    
+    
+{% endfor %}
+
+
+
+{% if repository_users.count == 0 %}
+    <div class="bg-secondary text-light rounded p-4 my-5">
+        <h5>No Github Account Users added yet</h5>
+    </div>
+{% endif %}
+    
+
+{% endblock content %}
