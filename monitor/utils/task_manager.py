@@ -4,8 +4,9 @@ Module for task managing with file based system
 
 
 import os
-from django.conf import settings
 from typing import Tuple
+
+from django.conf import settings
 
 
 class ErrorReadingFile(Exception):

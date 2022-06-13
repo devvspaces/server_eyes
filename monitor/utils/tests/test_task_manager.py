@@ -7,7 +7,7 @@ import os
 from django.conf import settings
 from django.test import SimpleTestCase
 from utils.task_manager import (ErrorReadingFile, ErrorWritingFile,
-                                FileBasedManager, Task)
+                                FileBasedManager, Task, TaskAlreadyActive)
 
 
 class UtilityMixin:
@@ -113,6 +113,11 @@ class TaskTest(UtilityMixin, SimpleTestCase):
         with open(self.file_path) as file:
             computed = file.read()
         self.assertEqual(computed, self.task_id)
+
+    def test_add_task_error(self):
+        with self.assertRaises(TaskAlreadyActive):
+            self.task.add_task()
+            self.task.add_task()
 
     def test_is_task_active_false(self):
         active, tasks = self.task.is_task_active()
