@@ -116,7 +116,7 @@ section{
 /* Log page */
 .filter_box{
     display: flex;
-    align-items: center;
+    /* align-items: center; */
     padding: 1rem 0;
     flex-wrap: wrap;
 }
@@ -134,6 +134,7 @@ section{
     font-size: 1rem;
     font-weight: 400;
     line-height: 1.5;
+    align-self: center;
 }
 
 .log_tab .head{

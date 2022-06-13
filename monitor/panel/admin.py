@@ -1,9 +1,9 @@
 from django.contrib import admin
-
-from .models import Domain, Subdomain, Server, GithubAccount, Repository, RepositoryUser
-from .forms import ServerCreateForm, GithubCreateForm
-
 from utils.admin_mixins import ExtraAdminFeature
+
+from .forms import GithubCreateForm, ServerCreateForm
+from .models import (Domain, GithubAccount, Repository, RepositoryUser, Server,
+                     Subdomain)
 
 admin.site.register([Domain, Subdomain, Repository, RepositoryUser])
 
@@ -13,10 +13,10 @@ class ServerAdmin(ExtraAdminFeature):
 
     list_display = ('name', 'username',)
     list_filter = ('web_server',)
-    search_fields= ('name', 'username',)
+    search_fields = ('name', 'username',)
 
     fieldsets = (
-        ('Server', {'fields': ('ip_address', 'name',)}),
+        ('Server', {'fields': ('ip_address', 'name', 'server_os_name', 'server_os_version', 'server_os_url',)}),
         ('Advanced', {'fields': ('slug_name', 'username', 'web_server')}),
     )
 
@@ -33,7 +33,7 @@ class GithubAccountAdmin(ExtraAdminFeature):
 
     list_display = ('username', 'active', 'created', 'updated',)
     list_filter = ('active',)
-    search_fields= ('username', 'updated',)
+    search_fields = ('username', 'updated',)
 
     fieldsets = (
         ('Github Account', {'fields': ('username', 'active',)}),

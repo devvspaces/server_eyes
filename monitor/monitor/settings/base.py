@@ -20,6 +20,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.humanize',
+    'django.contrib.admindocs',
 
     # Custom app
     'services',
@@ -189,13 +190,3 @@ GITHUB_WEBHOOK_SECRET = config('GITHUB_WEBHOOK_SECRET')
 
 
 DEPLOY_PROJECTS_DIR = '/home/netrobe/deploys/projects/'
-
-
-WEB_ENABLED_PATH = {
-    'apache': {
-        'enabled_path': '/etc/apache2/sites-enabled',
-    },
-    'nginx': {
-        'enabled_path': '/etc/nginx/sites-enabled',
-    }
-}

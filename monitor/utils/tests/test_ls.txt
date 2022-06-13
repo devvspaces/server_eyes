@@ -1,0 +1,11 @@
+
+total 36
+drwxrwxr-x  6 netrobe netrobe 4096 Apr  5 04:07 .
+drwxr-xr-x  6 netrobe netrobe 4096 Jun 12 18:52 ..
+drwxrwxr-x  8 netrobe netrobe 4096 May  4 03:19 .git
+-rw-rw-r--  1 netrobe netrobe 1826 Mar  6 12:18 .gitignore
+-rw-rw-r--  1 netrobe netrobe   15 Mar  6 12:18 README.md
+-rw-rw-r--  1 netrobe netrobe  713 Apr  5 04:07 requirements.txt
+drwxrwxr-x 10 netrobe netrobe 4096 Apr  5 05:09 tripapi
+drwxrwxr-x 12 netrobe netrobe 4096 Apr  5 05:28 tripvalue
+drwxrwxr-x  4 netrobe netrobe 4096 Mar  6 12:26 venv

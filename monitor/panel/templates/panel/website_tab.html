@@ -60,20 +60,23 @@
         {% csrf_token %}
         <div class="mb-3">
             <label for="log_type">Log type</label>
-            <select name="log_type" class="form-select" id="log_type">
+            <select name="log_type" class="form-select ajax-input" id="log_type">
                 <option value="access">Access</option>
                 <option value="error">Error</option>
             </select>
+            <div class="form-errors" for="log_type"></div>
         </div>
 
         <div class="mb-3">
             <label for="from_date">From</label>
-            <input name="from_date" type="date" class="form-control" id="from_date"/>
+            <input name="from_date" type="date" class="form-control ajax-input" id="from_date"/>
+            <div class="form-errors" for="from_date"></div>
         </div>
 
         <div class="mb-3">
             <label for="to_date">To</label>
-            <input name="to_date" type="date" class="form-control" id="to_date"/>
+            <input name="to_date" type="date" class="form-control ajax-input" id="to_date"/>
+            <div class="form-errors" for="to_date"></div>
         </div>
 
         <button type='submit' class="btn btn-primary btn-sm">Run</button>

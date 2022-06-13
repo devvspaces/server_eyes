@@ -19,7 +19,7 @@
         <div class="d-flex">
             <label for="#input-p1">Show Private Repositories</label>
             <input type="checkbox" name="show_private_repo" id="input-p1" class="form-check ms-4" 
-                {% if form.show_private_repo.value == True %}
+                {% if form.show_private_repo.value is True %}
                     checked
                 {% endif %}
             >

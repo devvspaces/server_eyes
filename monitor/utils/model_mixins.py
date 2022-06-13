@@ -1,5 +1,6 @@
 from django.db import models
 
+
 class ModelChangeFunc(models.Model):
 
     class Meta:
@@ -14,9 +15,9 @@ class ModelChangeFunc(models.Model):
     @property
     def monitor_change_fields(self) -> list:
         if self.monitor_change:
-            return [key for key,_ in self.monitor_change.items()]
+            return [key for key, _ in self.monitor_change.items()]
         return []
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 

@@ -1,60 +1,61 @@
-import time, json, threading
-import re
+import json
+import threading
+import time  # noqa
 
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import JsonResponse, Http404, HttpResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views import generic
 from django.views.decorators.csrf import csrf_exempt
-
-from utils.general import verify_next_link, linodeClient, get_required_data, convert_error, is_ajax, fetch_enabled_sites, validate_payload, start_redeploy_process
-from utils.mixins import GetServer
-from utils.logger import *
-
 from services.models import Service, Website, WebsiteUrl
+from utils.general import (convert_error, get_required_data, is_ajax,
+                           verify_next_link)
+from utils.github import GithubClient
+from utils.linode import linodeClient
+from utils.logger import err_logger, logger  # noqa
+from utils.mixins import GetServer
 
-from .forms import GithubCreateForm, GithubUpdateForm, LoginForm, SubdomainForm, GetLogForm, GithubAccountUserUpdateForm
-from .models import Domain, GithubAccount, RepositoryUser, Subdomain, Server, Repository
+from .forms import (GetLogForm, GithubAccountUserUpdateForm, GithubCreateForm,
+                    GithubUpdateForm, LoginForm, SubdomainForm)
+from .models import (Domain, GithubAccount, Repository, RepositoryUser, Server,
+                     Subdomain)
 
 
-
-
-
-
-# Webhook for github
 @csrf_exempt
 def github_receive_webhook(request):
-    request_meta :dict = request.META
-    request_body = request.body
+    """
+    Github webhook view
+    """
 
-    # Get the details
-    HTTP_X_GITHUB_HOOK_ID = request_meta.get('HTTP_X_GITHUB_HOOK_ID')
+    request_meta: dict = request.META
+    request_body: bytes = request.body
 
     try:
-
-        # Get the repository
-        repository = Repository.objects.filter(hook_id=HTTP_X_GITHUB_HOOK_ID).first()
+        HTTP_X_GITHUB_HOOK_ID = request_meta.get('HTTP_X_GITHUB_HOOK_ID')
+        repository = Repository.objects.filter(
+            hook_id=HTTP_X_GITHUB_HOOK_ID).first()
 
         if repository:
+            SIGNATURE = request_meta.get('HTTP_X_HUB_SIGNATURE_256')
 
-            # Get sha265 signature
-            HTTP_X_HUB_SIGNATURE_256 = request_meta.get('HTTP_X_HUB_SIGNATURE_256')
+            if GithubClient.validate_payload(
+                request_body,
+                repository.get_webhook_secret(),
+                SIGNATURE
+            ):
+                hook_data: dict = json.loads(request_body.decode())
 
-            # Validated It is from github
-            if validate_payload(request_body, repository, HTTP_X_HUB_SIGNATURE_256):
-                
-                # Parse json object
-                hook_data :dict = json.loads(request_body.decode())
-
-                # Get the updated branch
-                ref :str = hook_data.get('ref')
+                # Get the branch
+                branch = None
+                ref: str = hook_data.get('ref')
                 refs = ref.split('/')
                 if refs[1] == 'heads':
                     branch = refs[2]
 
+                if branch is not None:
                     # Apps to run autodeploy
                     apps = repository.reactapp_set.filter(auto_redeploy=True)
 
@@ -62,27 +63,26 @@ def github_receive_webhook(request):
                         app_branch = app.branch if app.branch else 'master'
 
                         if app_branch == branch:
-                            
-                            # Redeploy process start
-                            # Check if app not already in deployment
-                            if app.app_in_deployment == False:
-                                t = threading.Thread(target=start_redeploy_process, args=[app])
+                            if app.app_in_deployment is False:
+                                t = threading.Thread(target=app.deploy_process)
                                 t.start()
-                                logger.debug('Started automatically ' + app.project_name)
+
+                                message = f"""
+                                Started automatically {app.project_name} """
+                                logger.debug(message)
 
                 return HttpResponse(status=200)
-    
+
     except Exception as e:
-        print('Could not complete')
         err_logger.exception(e)
-        
-    
+
     return HttpResponse(status=400)
 
 
-
-# Create your views here.
 def login_view(request):
+    """
+    Login view
+    """
     context = {}
     form = LoginForm()
 
@@ -103,10 +103,11 @@ def login_view(request):
 
                 messages.success(request, f"Welcome, {username}.")
                 return redirect(next)
-    
+
     context['form'] = form
 
     return render(request, 'panel/login.html', context)
+
 
 def logout_view(request):
     logout(request)
@@ -114,11 +115,12 @@ def logout_view(request):
 
 
 class Dashboard(LoginRequiredMixin, GetServer, generic.TemplateView):
+    """
+    Main dashboard view
+    """
+
     template_name = 'panel/index.html'
-
-    # So as not to redirect when server is not selected
     select_server_redirect = False
-
     extra_context = {
         'title': 'Dashboard',
     }
@@ -137,8 +139,11 @@ class Dashboard(LoginRequiredMixin, GetServer, generic.TemplateView):
         return context
 
 
-
 class ServerPage(LoginRequiredMixin, generic.DetailView):
+    """
+    Server dashboard page
+    """
+
     template_name = 'panel/server_page.html'
     slug_field = 'slug_name'
     slug_url_kwarg = 'slug_name'
@@ -164,56 +169,57 @@ class ServerPage(LoginRequiredMixin, generic.DetailView):
         return context
 
 
+def recheck_server_websites(request, slug_name: str):
+    """
+    Recheck websites on server
 
-# Recheck websites on main website hostee
-def recheck_server_websites(request, slug_name):
-    # Get server obj
+    :param slug_name: Server instance slug name
+    :type slug_name: str
+    :return: redirect to server dashboard page
+    """
+
     server = get_object_or_404(Server, slug_name=slug_name)
     server.recheck()
 
     messages.success(request, 'Websites are all rechecked')
-    return redirect(reverse('panel:server_page', kwargs={'slug_name': slug_name}))
+    return redirect(reverse(
+        'panel:server_page', kwargs={'slug_name': slug_name}))
 
 
 def update_server_websites(request, slug_name):
-    # Get server obj
+    """
+    Create, delete or updates enabled websites
+
+    :return: redirect to server dashboard page
+    """
+
     server = get_object_or_404(Server, slug_name=slug_name)
-    websites = fetch_enabled_sites(server)
+    websites = server.get_enabled_sites()
 
     for data in websites:
-        # Process out neccessary info like name, conf_name, log_name
-        conf_name = data['file_name'].split('.')[0]
-        name = conf_name.replace('_', ' ').title()
-        conf_filename = conf_name
+        clean_data = server.parse_website_data(data)
 
-        defaults = {
-            'name': name,
-            'conf_filename': conf_filename,
-            'access_log': data['access_log'],
-            'error_log': data['error_log'],
-            'other_logs': data['other_logs']
-        }
+        current_urls = clean_data.pop('urls')
 
-        website, _ = Website.objects.update_or_create(server=server, conf_filename=conf_filename, defaults=defaults)
-        
-        # Get db urls and new urls
+        website, _ = Website.objects.update_or_create(
+            server=server,
+            conf_filename=clean_data['conf_filename'],
+            defaults=clean_data)
+
         website_urls = website.websiteurl_set.all()
-        db_urls = [website_url.url for website_url in website_urls]
-        gotten_urls = data['urls']
 
-        for url in gotten_urls:
-            if url not in db_urls:
-                WebsiteUrl.objects.create(url=url, website=website)
+        for site in website_urls:
+            if site.url not in current_urls:
+                site.delete()
             else:
-                db_urls.remove(url)
-        
-        # Delete remaining db urls
-        for website in website_urls:
-            if website.url in db_urls:
-                website.delete()
-    
-    messages.success(request, 'Websites successfully updated')
-    return redirect(reverse('panel:server_page', kwargs={'slug_name': slug_name}))
+                current_urls.remove(site.url)
+
+        for url in current_urls:
+            WebsiteUrl.objects.create(url=url, website=website)
+
+    messages.success(request, 'Website list successfully updated')
+    return redirect(
+        reverse('panel:server_page', kwargs={'slug_name': slug_name}))
 
 
 class ServiceLog(LoginRequiredMixin, GetServer, generic.DetailView):
@@ -224,13 +230,16 @@ class ServiceLog(LoginRequiredMixin, GetServer, generic.DetailView):
     context_object_name = 'service'
 
     def get_context_data(self, **kwargs):
+        """
+        Update the context for this view
+
+        :return: context
+        :rtype: dict
+        """
+
         context = super().get_context_data(**kwargs)
-
         service = self.get_object()
-
-        # Get service name
         context["title"] = service.name
-
         return context
 
 
@@ -252,17 +261,16 @@ class WebsiteLog(LoginRequiredMixin, GetServer, generic.DetailView):
         return context
 
 
-
 def recheck_service_status(request, service_name):
     obj = get_object_or_404(Service, service_name=service_name)
 
     # Update status
     obj.recheck()
 
-    messages.success(request, f"{obj.name} service status is successfully reloaded")
+    messages.success(
+        request, f"{obj.name} service status is successfully reloaded")
 
     return redirect(obj.get_absolute_url())
-
 
 
 def get_logs_view(request):
@@ -276,12 +284,11 @@ def get_logs_view(request):
         data = {
             'log': obj.get_logs()
         }
-    
+
         return JsonResponse(data=data, status=200)
-    
+
     messages.warning(request, 'Page does not exist')
     return redirect('panel:dashboard')
-
 
 
 def recheck_website_status(request, conf_filename):
@@ -289,9 +296,8 @@ def recheck_website_status(request, conf_filename):
 
     # Update status
     obj.recheck()
-
-    messages.success(request, f"{obj.name} links status is successfully reloaded")
-
+    messages.success(
+        request, f"{obj.name} links status is successfully reloaded")
     return redirect(obj.get_absolute_url())
 
 
@@ -300,29 +306,28 @@ def get_websites_logs_view(request, conf_filename):
     obj = get_object_or_404(Website, conf_filename=conf_filename)
 
     if request.POST:
-        # Validate form
-        form = GetLogForm(request.POST)
+        data = request.POST.copy()
+        data['access'] = obj.access_log
+        data['error'] = obj.error_log
+        form = GetLogForm(data)
 
         if form.is_valid():
             # Get log_type
             log_type = form.cleaned_data.get('log_type')
-
-            # Get the service logs
             data = {
                 'log': obj.get_logs(log_type)
             }
-
             return JsonResponse(data=data, status=200)
-        
+
         errors = form.errors
         data = {
             'errors': errors
         }
         return JsonResponse(data=data, status=400)
-    
-    messages.warning(request, 'Log does not exist')
-    return redirect(reverse('panel:server_page', kwargs={'slug_name': obj.server.slug_name}))
 
+    messages.warning(request, 'Log does not exist')
+    return redirect(reverse(
+        'panel:server_page', kwargs={'slug_name': obj.server.slug_name}))
 
 
 class DomainList(LoginRequiredMixin, GetServer, generic.ListView):
@@ -339,33 +344,29 @@ class DomainList(LoginRequiredMixin, GetServer, generic.ListView):
 # Function based view to update the domain list from linode
 def update_domain_list(request):
     # Get domains from linode
-    status, data = linodeClient.fetch_get('domains_list')
+    domains = linodeClient.get_domains_list()
 
-    # Get if status is valid
-    if status == 200:
-        list_domains = data['data']
+    for domain in domains:
+        # Get the bootstrap tag to use for the status
+        status = domain.get('status')
+        status_tag = 'success' if status == 'active' else 'danger'
 
-        # New obj
-        for domain_obj in list_domains:
+        new_obj = {
+            'domain': domain.get('domain'),
+            'domain_id': domain.get('id'),
+            'status': status,
+            'status_tag': status_tag,
+            'soa_email': domain.get('soa_email'),
+        }
 
-            # Get the bootstrap tag to use for the status
-            status = domain_obj.get('status')
-            status_tag = 'success' if status == 'active' else 'danger'
+        # Create or update domain objects
+        # NOTE: Refactor this statement
+        Domain.objects.update_or_create(**new_obj)
 
-            new_obj = {
-                'domain': domain_obj.get('domain'),
-                'domain_id': domain_obj.get('id'),
-                'status': status,
-                'status_tag': status_tag,
-                'soa_email': domain_obj.get('soa_email'),
-            }
-
-            # Create or update domain objects
-            Domain.objects.update_or_create(**new_obj)
-        
-        messages.success(request, 'Domain list is successfully updated')
+    messages.success(request, 'Domain list is successfully updated')
 
     return redirect('panel:domain-list')
+
 
 class DomainDetail(LoginRequiredMixin, GetServer, generic.DetailView):
     select_server_redirect = False
@@ -404,16 +405,15 @@ class DomainDetail(LoginRequiredMixin, GetServer, generic.DetailView):
             }
 
             list_records_processed.append(new_obj)
-            
+
         context['list_records_processed'] = list_records_processed
         context['main_domain_ip'] = main_domain_ip
 
         return context
 
-
     def post(self, request, *args, **kwargs):
         if is_ajax(request):
-            context= dict()
+            context = dict()
 
             # Get the domain object
             domain = self.get_object()
@@ -434,11 +434,14 @@ class DomainDetail(LoginRequiredMixin, GetServer, generic.DetailView):
                 # Add the record type to the data
                 data['type'] = 'A'
 
-                status, result = linodeClient.fetch_post(endpoint='domain_records', data=data, url_values={'-domainId-': domain.domain_id})
+                status, result = linodeClient.create_subdomain(
+                    data, domain.domain_id)
 
-                if status == 200:
+                if status is True:
                     # Get the target and name
-                    target, name, record_id = result['target'], result['name'], result['id']
+                    target = result['target']
+                    name = result['name']
+                    record_id = result['id']
 
                     new_obj = {
                         'target': target,
@@ -453,9 +456,9 @@ class DomainDetail(LoginRequiredMixin, GetServer, generic.DetailView):
                     Subdomain.objects.create(**new_obj)
 
                     return JsonResponse(data=context, status=200)
-            
+
                 errors = result['errors']
-            
+
             else:
                 errors = {'errors': form.errors}
 
@@ -482,64 +485,54 @@ def update_subdomain_list(request, domain_id):
     # Set updated subdomain list
     updated_sub_list = []
 
-    # Get domains records for domain from linode
-    status, data = linodeClient.fetch_get('domain_records', url_values={'-domainId-': domain.domain_id})
+    # Get subdomains for domain from linode
+    linode_subdomains = linodeClient.get_subdomains(domain.domain_id)
 
-    # Get if status is valid
-    if status == 200:
-        list_records = data['data']
+    for record in linode_subdomains:
+        name = record.get('name')
+        target = record.get('target')
+        record_id = record.get('id')
 
-        for domain_obj in list_records:
-            record_type = domain_obj.get('type')
-            name = domain_obj.get('name')
-            target = domain_obj.get('target')
-            record_id = domain_obj.get('id')
+        # Check if the record id is already in the db
+        try:
+            # Get subdomain
+            subdomain = subdomains.get(record_id=record_id)
 
-            # Check if the record is an A dns record
-            if record_type == 'A':
+            # Update it
+            subdomain.name = name
+            subdomain.target = target
+            subdomain.save()
 
-                # Check if the record id is already in the db
-                try:
-                    # Get subdomain
-                    subdomain = subdomains.get(record_id=record_id)
+            # Append to updated subdomain list
+            updated_sub_list.append(subdomain)
 
-                    # Update it
-                    subdomain.name = name
-                    subdomain.target = target
-                    subdomain.save()
+        except Subdomain.DoesNotExist:
+            # Create new subomain
+            new_obj = {
+                'name': name,
+                'target': target,
+                'record_id': record_id,
+                'domain_id': domain_id,
+            }
+            new_obj = Subdomain.objects.create(**new_obj)
+            updated_sub_list.append(new_obj)
 
-                    # Append to updated subdomain list
-                    updated_sub_list.append(subdomain)
-                
-                except Subdomain.DoesNotExist:
-                    # Create new subomain
-                    new_obj = {
-                        'name': name,
-                        'target': target,
-                        'record_id': record_id,
-                        'domain_id': domain_id,
-                    }
-                    new_obj = Subdomain.objects.create(**new_obj)
-                    updated_sub_list.append(new_obj)
-        
-        # Delete subdomains that are not processed. Because this means that
-        # they are not in linode anymore
-        for current in subdomains:
-            # value to know whether it is there or not
-            is_available = False
-            for new in updated_sub_list:
-                if new.id == current.id:
-                    is_available = True
-                    break
-            # Delete current meaning that it is not in the updated list at all
-            if not is_available:
-                current.delete()
-        
-        messages.success(request, 'Domain list is successfully updated')
+    # Delete subdomains that are not processed. Because this means that
+    # they are not in linode anymore
+    for current in subdomains:
+        # value to know whether it is there or not
+        is_available = False
+        for new in updated_sub_list:
+            if new.id == current.id:
+                is_available = True
+                break
+        # Delete current meaning that it is not in the updated list at all
+        if not is_available:
+            current.delete()
+
+    messages.success(request, 'Domain list is successfully updated')
 
     return redirect(reverse('panel:domain-detail', args=[domain_id]))
-
-
 
 
 # Github account detail page
@@ -565,7 +558,6 @@ class GithubAccountDetail(LoginRequiredMixin, GetServer, generic.DetailView):
         return context
 
 
-
 class GithubAccountCreate(LoginRequiredMixin, GetServer, generic.TemplateView):
     select_server_redirect = False
     template_name = 'panel/add_github.html'
@@ -583,11 +575,9 @@ class GithubAccountCreate(LoginRequiredMixin, GetServer, generic.TemplateView):
                 'username': '',
                 'white_list_organizations': '',
                 'black_list_organizations': '',
-                }
-            )
+            })
 
         return context
-    
 
     def post(self, request, *args, **kwargs):
         context = self.get_context_data()
@@ -597,8 +587,9 @@ class GithubAccountCreate(LoginRequiredMixin, GetServer, generic.TemplateView):
         if form.is_valid():
             account = form.save()
             messages.success(request, 'Github account successfully created')
-            return redirect(reverse('panel:github_detail', kwargs={"username": account.username}))
-        
+            return redirect(reverse(
+                'panel:github_detail', kwargs={"username": account.username}))
+
         context['form'] = form
 
         return render(request, self.template_name, context)
@@ -625,10 +616,10 @@ class GithubAccountUpdate(LoginRequiredMixin, GetServer, generic.DetailView):
         context["repository_users"] = object.repositoryuser_set.all()
 
         # Init form
-        context['form'] = GithubUpdateForm(instance=object, initial={'needed_password': ''})
+        context['form'] = GithubUpdateForm(
+            instance=object, initial={'needed_password': ''})
 
         return context
-    
 
     def post(self, request, *args, **kwargs):
         context = self.get_context_data()
@@ -638,15 +629,18 @@ class GithubAccountUpdate(LoginRequiredMixin, GetServer, generic.DetailView):
         if form.is_valid():
             form.save()
             messages.success(request, 'Github account successfully updated')
-            return redirect(reverse('panel:github_update', kwargs={"username": self.object.username}))
-        
+            return redirect(reverse(
+                'panel:github_update',
+                kwargs={"username": self.object.username}))
+
         context['form'] = form
 
         return render(request, self.template_name, context)
 
 
-
-class GithubAccountUserUpdate(LoginRequiredMixin, GetServer, generic.TemplateView):
+class GithubAccountUserUpdate(
+    LoginRequiredMixin, GetServer, generic.TemplateView
+):
     select_server_redirect = False
     template_name = 'panel/update_github_account_user.html'
 
@@ -661,7 +655,8 @@ class GithubAccountUserUpdate(LoginRequiredMixin, GetServer, generic.TemplateVie
         github_account = get_object_or_404(GithubAccount, username=username)
 
         try:
-            github_account_user = github_account.repositoryuser_set.get(user=account_name)
+            github_account_user = \
+                github_account.repositoryuser_set.get(user=account_name)
         except RepositoryUser.DoesNotExist:
             raise Http404('Github User account does not exist')
 
@@ -669,7 +664,8 @@ class GithubAccountUserUpdate(LoginRequiredMixin, GetServer, generic.TemplateVie
         context['title'] = f"Update {username} - Account: {account_name}"
 
         # Init form
-        context['form'] = GithubAccountUserUpdateForm(instance=github_account_user, initial={'needed_password': ''})
+        context['form'] = GithubAccountUserUpdateForm(
+            instance=github_account_user, initial={'needed_password': ''})
 
         # Add user to context
         context['github_account_user'] = github_account_user
@@ -679,20 +675,24 @@ class GithubAccountUserUpdate(LoginRequiredMixin, GetServer, generic.TemplateVie
         context['account_name'] = account_name
 
         return context
-    
 
     def post(self, request, *args, **kwargs):
         context = self.get_context_data()
 
         github_account_user = context['github_account_user']
-        form = GithubAccountUserUpdateForm(data=request.POST, instance=github_account_user)
+        form = GithubAccountUserUpdateForm(
+            data=request.POST, instance=github_account_user)
 
         if form.is_valid():
             form.save()
 
-            messages.success(request, 'Github account user successfully updated')
-            return redirect(reverse('panel:github_update_user', kwargs={"username": context['username'], 'account_name': context['account_name']}))
-        
+            messages.success(
+                request, 'Github account user successfully updated')
+            return redirect(reverse(
+                'panel:github_update_user',
+                kwargs={
+                    "username": context['username'],
+                    'account_name': context['account_name']}))
         context['form'] = form
 
         return render(request, self.template_name, context)
@@ -704,9 +704,12 @@ def update_github_accounts(request, username):
     # Update account users
     github_account.update_account_users()
 
-    messages.success(request, f"{github_account.username} accounts are successfully updated")
+    messages.success(
+        request,
+        f"{github_account.username} accounts are successfully updated")
 
-    return redirect(reverse('panel:github_detail', kwargs={"username": github_account.username}))
+    return redirect(reverse(
+        'panel:github_detail', kwargs={"username": github_account.username}))
 
 
 def delete_github_account(request, username):
@@ -715,7 +718,8 @@ def delete_github_account(request, username):
     # Update account users
     github_account.delete()
 
-    messages.success(request, f"{github_account.username} Account is successfully deleted")
+    messages.success(
+        request, f"{github_account.username} Account is successfully deleted")
 
     return redirect('panel:dashboard')
 
@@ -725,16 +729,18 @@ def update_repos(request, username, account_name):
     github_account = get_object_or_404(GithubAccount, username=username)
 
     try:
-        github_account_user = github_account.repositoryuser_set.get(user=account_name)
+        github_account_user =\
+            github_account.repositoryuser_set.get(user=account_name)
     except RepositoryUser.DoesNotExist:
         raise Http404('Github User account does not exist')
 
     # Update status
     github_account_user.update_repos()
 
-    messages.success(request, f"Github account user repositories for {account_name} are successfully reloaded")
+    messages.success(
+        request,
+        f"""Github account user repositories
+        for {account_name} are successfully reloaded""")
 
-    return redirect(reverse('panel:github_detail', kwargs={"username": username}))
-
-
-
+    return redirect(reverse(
+        'panel:github_detail', kwargs={"username": username}))

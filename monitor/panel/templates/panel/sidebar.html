@@ -32,8 +32,18 @@
             </li>
 
             <li>
-                <p class="head">Server OS</p>
-                <p class="content">Coming soon!</p>
+                <p class="head">Server OS Name</p>
+                <p class="content">{{ server.server_os_name }}</p>
+            </li>
+
+            <li>
+                <p class="head">Server OS Version</p>
+                <p class="content">{{ server.server_os_version }}</p>
+            </li>
+
+            <li>
+                <p class="head">Server OS Home URL</p>
+                <p class="content"><a href="{{ server.server_os_url }}" target="_blank">{{ server.server_os_url }}</a></p>
             </li>
 
             <li>

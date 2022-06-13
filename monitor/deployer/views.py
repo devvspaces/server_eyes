@@ -1,24 +1,22 @@
-import os
-import time, threading
+import threading
+import time  # noqa
 
-from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import redirect
 from django.urls import reverse
-from django.views import generic
 from django.utils.html import escape
-
-from panel.models import Domain, Subdomain, Repository
-from utils.general import convert_error, is_ajax, linodeClient, start_redeploy_process
-from utils.logger import *
+from django.views import generic
+from panel.models import Domain, Repository, Subdomain
+from utils.general import (convert_error, get_domain_name, is_ajax)
+from utils.linode import linodeClient
+from utils.logger import err_logger, logger  # noqa
 from utils.mixins import GetServer
 
-from .models import ReactApp
 from .forms import ReactDeployForm
-
+from .models import ReactApp
 
 
 class ReactDeployedApps(LoginRequiredMixin, GetServer, generic.ListView):
@@ -50,7 +48,6 @@ class ReactDeployNewapp(LoginRequiredMixin, GetServer, generic.TemplateView):
         context['domains'] = Domain.objects.all()
 
         return context
-    
 
     def post(self, request, *args, **kwargs):
 
@@ -69,7 +66,8 @@ class ReactDeployNewapp(LoginRequiredMixin, GetServer, generic.TemplateView):
                 validated_data = form.cleaned_data
 
                 # Get to variables
-                project_name, repository, branch, domain, subdomain, link = validated_data.values()
+                project_name, repository, branch,\
+                    domain, subdomain, link = validated_data.values()
 
                 # Set the target ip
                 target_ip = server.ip_address
@@ -85,11 +83,13 @@ class ReactDeployNewapp(LoginRequiredMixin, GetServer, generic.TemplateView):
                     # Add the record type to the data
                     data['type'] = 'A'
 
-                    status, result = linodeClient.fetch_post(endpoint='domain_records', data=data, url_values={'-domainId-': domain.domain_id})
+                    status, result\
+                        = linodeClient.create_subdomain(data, domain.domain_id)
 
-                    if status == 200:
+                    if status is True:
                         # Get the target and name
-                        target, name, record_id = result['target'], result['name'], result['id']
+                        target, name, record_id\
+                            = result['target'], result['name'], result['id']
 
                         new_obj = {
                             'target': target,
@@ -102,29 +102,25 @@ class ReactDeployNewapp(LoginRequiredMixin, GetServer, generic.TemplateView):
 
                         # Create new subdomain
                         subdomain = Subdomain.objects.create(**new_obj)
-                    
+
                     else:
                         errors = result['errors']
-                
+
                 else:
                     # Meaning Subdomain is seleted
                     # If subdomain target is not same as hosting server
-                    url_values = {
-                        '-domainId-': domain.domain_id,
-                        '-recordId-': subdomain.record_id,
-                    }
-
                     # Update data
                     data = {
                         'target': target_ip
                     }
-                    status, result = linodeClient.fetch_post(method='put', endpoint='record_update', data=data, url_values=url_values)
+                    status, result = linodeClient.update_record(
+                        data, domain.domain_id, subdomain.record_id)
 
-                    if status == 200:
+                    if status is True:
                         # Update our db subdomain target
                         subdomain.target = target_ip
                         subdomain.save()
-                        
+
                     else:
                         errors = result['errors']
 
@@ -141,9 +137,10 @@ class ReactDeployNewapp(LoginRequiredMixin, GetServer, generic.TemplateView):
 
                     app = ReactApp.objects.create(**new_app)
 
-                    messages.success(request, f'App is successfully created')
+                    messages.success(request, 'App is successfully created')
 
-                    context['redirect'] = str(reverse('deploy:react-app', kwargs={'slug': app.slug}))
+                    context['redirect'] = str(
+                        reverse('deploy:react-app', kwargs={'slug': app.slug}))
 
                     return JsonResponse(data=context, status=200)
 
@@ -154,14 +151,15 @@ class ReactDeployNewapp(LoginRequiredMixin, GetServer, generic.TemplateView):
                 errors = convert_error(errors)
                 if errors is not None:
                     errors = errors['errors']
-                    
+
             context['errors'] = errors
 
             return JsonResponse(data=context, status=400)
 
 
-
-class DeployDetail(LoginRequiredMixin, GetServer, generic.DetailView):
+class DeployDetail(
+    LoginRequiredMixin, GetServer, generic.DetailView
+):
     template_name = 'deployer/detail.html'
     model = ReactApp
     slug_field = 'slug'
@@ -180,32 +178,34 @@ class DeployDetail(LoginRequiredMixin, GetServer, generic.DetailView):
 
 @login_required
 def deploy_app(request, slug):
-    app = ReactApp.objects.get(slug=slug)
+    app: ReactApp = ReactApp.objects.get(slug=slug)
 
     # Check if app not already in deployment
-    if app.app_in_deployment == False:
-        t = threading.Thread(target=start_redeploy_process, args=[app])
+    if app.app_in_deployment is False:
+        t = threading.Thread(target=app.deploy_process)
         t.start()
     else:
-        messages.warning(request, 'Current app already in deployment, wait for task to complete.')
-
+        messages.warning(
+            request,
+            'Current app already in deployment, wait for task to complete.')
     return redirect(reverse('deploy:react-app', kwargs={'slug': app.slug}))
 
 
-
-# Setup auto redeploy
 @login_required
 def setup_auto_redeploy_app(request, slug):
     app = ReactApp.objects.get(slug=slug)
 
     # Invert previous value if True then becomes False - vice versa
     app.auto_redeploy = not app.auto_redeploy
-    app.repository.create_webhook(request)
+    domain = get_domain_name(request)
+    app.repository.create_webhook(domain)
     app.save()
 
     # Check whether to delete repository repo webhook or not
-    # Delete only when there is no other deployed apps with auto redeploy = True
-    count_app_with_auto_redeploy = app.repository.reactapp_set.filter(auto_redeploy=True).count()
+    # Delete only when there is no other deployed apps with
+    # auto redeploy = True
+    count_app_with_auto_redeploy\
+        = app.repository.reactapp_set.filter(auto_redeploy=True).count()
     if count_app_with_auto_redeploy == 0:
         app.repository.delete_webhook()
 
@@ -214,9 +214,7 @@ def setup_auto_redeploy_app(request, slug):
     return redirect(reverse('deploy:react-app', kwargs={'slug': app.slug}))
 
 
-# Fetch logs for app deploy process
 class FetchDeployLog(LoginRequiredMixin, GetServer, generic.View):
-    
     def get(self, request, *args, **kwargs):
         slug = kwargs.get('slug')
         app = ReactApp.objects.get(slug=slug)
@@ -239,9 +237,9 @@ class FetchDeployLog(LoginRequiredMixin, GetServer, generic.View):
                     context['data'] = text
 
                     return JsonResponse(data=context, status=200)
-        
+
         return JsonResponse(dict(), status=400)
-        
+
     def post(self, request, *args, **kwargs):
         slug = kwargs.get('slug')
         app = ReactApp.objects.get(slug=slug)
@@ -253,8 +251,5 @@ class FetchDeployLog(LoginRequiredMixin, GetServer, generic.View):
                     file.write('')
 
                     return JsonResponse(dict(), status=200)
-        
+
         return JsonResponse(dict(), status=400)
-    
-
-

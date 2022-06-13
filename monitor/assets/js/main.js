@@ -218,6 +218,8 @@ $(function() {
 
         // Clear alerts
         clearAlerts()
+
+		$('.form-errors').html('');
 	
 		$.ajax({
 			method: "POST",
@@ -226,6 +228,9 @@ $(function() {
 			success: function (data){
 				// Pause loader
 				stopLoader()
+				
+				// NOTE: Remove this in production
+				console.log(data)
 
 				// Get the log message
                 let message = data['log']
@@ -237,7 +242,6 @@ $(function() {
                 createAlert('Logs were pulled successfully')
 			},
 			error: function (jqXHR) {
-				console.log(jqXHR)
 				// Pause loader
 				stopLoader()
 
@@ -247,11 +251,35 @@ $(function() {
 
                 // Create error alert
                 createAlert('Error occured while trying to get logs.', 'danger')
+
+				let data = jqXHR['responseJSON'];
+
+				// Remove this in production
+                console.log(data)
+
+                // Check if there are errors
+                let errors = data['errors']
+
+                if (errors){
+                    for (const [key, value] of Object.entries(errors)) {
+                        if (key != '__all__'){
+                            let input = form.querySelector(".ajax-input[name='" + key + "']")
+                            let new_el = document.createElement('small')
+                            new_el.classList.add('text-danger')
+                            new_el.innerText = value
+                            
+                            // Get the form error div
+                            let form_error_div = document.querySelector(`div[for='${input.id}']`)
+                            form_error_div.appendChild(new_el)
+                        }
+                    }
+                }
 			},
 		})
 	}
 
 	if($('#log_form').length){
+		$('.log_sheet p').html('')
 		$('#log_form').submit(submitForm);
 	}
 
