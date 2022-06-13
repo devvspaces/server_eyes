@@ -63,7 +63,7 @@ def github_receive_webhook(request):
                         app_branch = app.branch if app.branch else 'master'
 
                         if app_branch == branch:
-                            if app.app_in_deployment is False:
+                            if app.app_in_process is False:
                                 t = threading.Thread(target=app.deploy_process)
                                 t.start()
 

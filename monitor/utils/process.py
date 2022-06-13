@@ -405,7 +405,7 @@ class AppProcess(ServerProcess):
         """
         Returns a newly created logger
         """
-        logger = logging.getLogger(self.get_app_name())
+        logger = logging.getLogger(self.get_app_name() + str(uuid4()))
         logger.setLevel(logging.INFO)
         log_file = self.get_log_file()
         try:

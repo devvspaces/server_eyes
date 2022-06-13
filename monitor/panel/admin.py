@@ -16,7 +16,10 @@ class ServerAdmin(ExtraAdminFeature):
     search_fields = ('name', 'username',)
 
     fieldsets = (
-        ('Server', {'fields': ('ip_address', 'name', 'server_os_name', 'server_os_version', 'server_os_url',)}),
+        ('Server', {
+            'fields': (
+                'ip_address', 'name', 'server_os_name',
+                'server_os_version', 'server_os_url',)}),
         ('Advanced', {'fields': ('slug_name', 'username', 'web_server')}),
     )
 

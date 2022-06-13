@@ -51,7 +51,7 @@ class BaseApp(ModelChangeFunc):
         choices=STATUS, default='inactive', max_length=255)
 
     # Tracking Deployment
-    app_in_deployment = models.BooleanField(default=False)
+    app_in_process = models.BooleanField(default=False)
     auto_redeploy = models.BooleanField(default=False)
 
     def save(self, force_insert=False, force_update=False, *args, **kwargs):
@@ -189,6 +189,35 @@ class ReactApp(BaseApp):
             web_server=self.server.web_server
         )
 
+    def run_pull(self):
+        """
+        Start git pull process for app
+        """
+
+        process: ReactProcess = self.get_app_process()
+        app_logger = process.get_logger()
+        app_logger.info('Started pull process')
+        self.app_in_process = True
+        self.pending_deploy()
+        self.save()
+
+        try:
+            process.create_client()
+            process.git_checkout()
+            process.git_pull()
+            self.success_deploy()
+            app_logger.info('Respository updated.')
+
+        except Exception as e:
+            app_logger.info('Error pulling repository')
+            app_logger.exception(e)
+            self.failed_deploy()
+
+        process.destroy()
+        app_logger.info('Finished Pull process\n\n')
+        self.app_in_process = False
+        self.save()
+
     def deploy_process(self):
         """
         Start deploy process for app
@@ -197,7 +226,7 @@ class ReactApp(BaseApp):
         process: ReactProcess = self.get_app_process()
         app_logger = process.get_logger()
         app_logger.info('Started deploying process')
-        self.app_in_deployment = True
+        self.app_in_process = True
         self.pending_deploy()
         self.save()
 
@@ -226,5 +255,5 @@ class ReactApp(BaseApp):
 
         process.destroy()
         app_logger.info('Finished Deploying\n\n')
-        self.app_in_deployment = False
+        self.app_in_process = False
         self.save()

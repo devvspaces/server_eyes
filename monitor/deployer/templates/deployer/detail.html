@@ -67,20 +67,16 @@
                     </div>
                     <div class="info-p">
                         <small>Branch</small>
-
-                        
                         {% if app.branch %}
                             <p>{{ app.branch }}</p>
                         {% else %}
                             <p>Master Branch</p>
                         {% endif %}
-                            
-                        
                     </div>
                 </div>
             </div>
             <div class="card-footer">
-                <a href="#" class="btn btn-sm btn-outline-primary"><span><i class="fa fa-cloud-download"></i></span> Pull</a>
+                <a href="{% url 'deploy:pull-app' app.slug %}" class="btn btn-sm btn-outline-primary"><span><i class="fa fa-cloud-download"></i></span> Pull</a>
                 <a href="#" class="btn btn-sm btn-outline-primary"><span><i class="fa fa-edit"></i></span> Edit</a>
             </div>
         </div>

@@ -181,13 +181,26 @@ def deploy_app(request, slug):
     app: ReactApp = ReactApp.objects.get(slug=slug)
 
     # Check if app not already in deployment
-    if app.app_in_deployment is False:
+    if app.app_in_process is False:
         t = threading.Thread(target=app.deploy_process)
         t.start()
     else:
         messages.warning(
-            request,
-            'Current app already in deployment, wait for task to complete.')
+            request, 'Already in process, wait for process to complete.')
+    return redirect(reverse('deploy:react-app', kwargs={'slug': app.slug}))
+
+
+@login_required
+def pull_app_repository(request, slug):
+    app: ReactApp = ReactApp.objects.get(slug=slug)
+
+    # Check if app not already in deployment
+    if app.app_in_process is False:
+        t = threading.Thread(target=app.run_pull)
+        t.start()
+    else:
+        messages.warning(
+            request, 'Already in process, wait for process to complete.')
     return redirect(reverse('deploy:react-app', kwargs={'slug': app.slug}))
 
 
