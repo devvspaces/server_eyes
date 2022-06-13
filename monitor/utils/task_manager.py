@@ -47,6 +47,7 @@ class FileBasedManager:
             with open(self.get_file_path()) as file:
                 content = file.read()
                 content = content.split(',')
+                content = [i for i in content if i]
                 return content
         except Exception as e:
             raise ErrorReadingFile(e)
@@ -54,6 +55,7 @@ class FileBasedManager:
     def write(self, content: list):
         try:
             with open(self.get_file_path(), 'w') as file:
+                content = [i for i in content if i]
                 content = ','.join(content)
                 file.write(content)
         except Exception as e:
@@ -76,26 +78,34 @@ class TaskAlreadyActive(Exception):
 
 
 class Task:
-    def __init__(self, task_id: str) -> None:
+    def __init__(
+        self, task_id: str, manager: FileBasedManager = None
+    ) -> None:
         self.__id = task_id
-
-    def set_manager(self, manager: FileBasedManager):
+        if manager is None:
+            manager = FileBasedManager()
         self.__manager = manager
+
+    def get_task_id(self) -> str:
+        return self.__id
+
+    def get_manager(self) -> FileBasedManager:
+        return self.__manager
 
     def add_task(self):
         active, tasks = self.is_task_active()
         if active:
             raise TaskAlreadyActive
-        tasks.append(self.__id)
-        self.__manager.write(tasks)
+        tasks.append(self.get_task_id())
+        self.get_manager().write(tasks)
 
     def is_task_active(self) -> Tuple[bool, list]:
-        tasks = self.__manager.read()
-        is_active = self.__id in tasks
+        tasks = self.get_manager().read()
+        is_active = self.get_task_id() in tasks
         return is_active, tasks
 
     def delete_task(self):
         active, tasks = self.is_task_active()
         if active:
-            tasks.remove(self.__id)
-            self.__manager.write(tasks)
+            tasks.remove(self.get_task_id())
+            self.get_manager().write(tasks)
