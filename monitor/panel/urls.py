@@ -57,6 +57,10 @@ urlpatterns = [
         'app/domain/<int:domain_id>/subdomains/update/',
         views.update_subdomain_list, name='subdomain-list-update'),
 
+    path(
+        'app/dashboard/file-manager/',
+        views.FileManagerView.as_view(), name='file-manager'),
+
 
     # Github
     path(

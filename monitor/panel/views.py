@@ -4,7 +4,8 @@ import time  # noqa
 
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import (LoginRequiredMixin,
+                                        PermissionRequiredMixin)
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -114,7 +115,10 @@ def logout_view(request):
     return redirect('panel:login')
 
 
-class Dashboard(LoginRequiredMixin, GetServer, generic.TemplateView):
+class Dashboard(
+    LoginRequiredMixin,
+    GetServer, generic.TemplateView
+):
     """
     Main dashboard view
     """
@@ -124,6 +128,7 @@ class Dashboard(LoginRequiredMixin, GetServer, generic.TemplateView):
     extra_context = {
         'title': 'Dashboard',
     }
+    # permission_required = ('panel.view_server',)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -137,6 +142,16 @@ class Dashboard(LoginRequiredMixin, GetServer, generic.TemplateView):
         # Get github accounts
         context['github_accounts'] = GithubAccount.objects.all()
         return context
+
+
+class FileManagerView(
+    LoginRequiredMixin,
+    GetServer, generic.TemplateView
+):
+    template_name = 'panel/file-manager.html'
+    extra_context = {
+        'title': 'File manager',
+    }
 
 
 class ServerPage(LoginRequiredMixin, generic.DetailView):

@@ -1,38 +1,42 @@
 {% extends 'panel/base.html' %}
-
+{% load static %}
 
 {% block content %}
 
 
-<div class="card mt-4">
-    <div class="card-header py-3">
-        <h6 class="mini_tabs_head">Servers</h6>
-    </div>
 
-    <div class="card-body">
-        <div class="mini_tabs">
+{% if perms.panel.view_server %}
+    <div class="card">
+        <div class="card-header b-l-primary border-3 d-flex">
+            <h5 class="mini_tabs_head">Servers</h5>
+        </div>
 
-            {% for server in servers %}
-            
-            <a href="{% url 'panel:server_page' server.slug_name %}" class="mini_tab">
-                <h6>{{ server.name }}</h6>
-                <p>{{ server.ip_address }}</p>
-            </a>
+        <div class="card-body">
+            <div class="mini_tabs">
 
-            {% endfor %}
+                {% for server in servers %}
+                
+                <a href="{% url 'panel:server_page' server.slug_name %}" class="mini_tab">
+                    <h6>{{ server.name }}</h6>
+                    <p>{{ server.ip_address }}</p>
+                </a>
 
-            {% if servers.count == 0 %}
-            <h5 class='py-4'>No Servers added yet</h5>
-            {% endif %}
+                {% endfor %}
 
+                {% if servers.count == 0 %}
+                <h5 class='py-4'>No Servers added yet</h5>
+                {% endif %}
+
+            </div>
         </div>
     </div>
-</div>
+{% endif %}
+    
 
 
 <div class="card mt-4">
-    <div class="card-header py-3">
-        <h6 class="mini_tabs_head">All Websites</h6>
+    <div class="card-header b-l-primary border-3 d-flex">
+        <h5 class="mini_tabs_head">All Websites</h5>
     </div>
 
     <div class="card-body">
@@ -61,8 +65,8 @@
 
 
 <div class="card mt-4">
-    <div class="card-header py-3">
-        <h6 class="mini_tabs_head">General</h6>
+    <div class="card-header b-l-primary border-3 d-flex">
+        <h5 class="mini_tabs_head">General</h5>
     </div>
 
     <div class="card-body">
@@ -83,11 +87,11 @@
 
 
 <div class="card mt-4">
-    <div class="card-header py-3 d-flex">
-        <h6 class="mini_tabs_head">Github Accounts</h6>
+    <div class="card-header b-l-primary border-3 d-flex">
+        <h5>Github Accounts</h5>
 
         <div class="ms-auto d-flex align-items-center">
-            <a href="{% url 'panel:github_account_create' %}" class="btn btn-sm btn-primary">Add Github Account</a>
+            <a href="{% url 'panel:github_account_create' %}" class="btn btn-gradient">Add Github Account</a>
         </div>
     </div>
 

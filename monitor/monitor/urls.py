@@ -5,6 +5,7 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/doc/', include('django.contrib.admindocs.urls')),
+    # path('grappelli/', include('grappelli.urls')),  # grappelli URLS
     path('admin/', admin.site.urls),
     path('', include('panel.urls')),
     path('deploy/', include('deployer.urls')),

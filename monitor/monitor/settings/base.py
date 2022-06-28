@@ -13,6 +13,9 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 # Application definition
 
 INSTALLED_APPS = [
+    # Grappeli
+    # 'grappelli',
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -29,6 +32,8 @@ INSTALLED_APPS = [
 
     # CRONTAB
     'django_crontab',
+
+    'guardian',
 ]
 
 MIDDLEWARE = [
@@ -42,9 +47,12 @@ MIDDLEWARE = [
     'panel.middleware.ServerSelectMiddleware',
 ]
 
-ROOT_URLCONF = 'monitor.urls'
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',  # this is default
+    'guardian.backends.ObjectPermissionBackend',
+)
 
-# AUTH_USER_MODEL = 'account.User'
+ROOT_URLCONF = 'monitor.urls'
 
 TEMPLATES = [
     {
@@ -57,7 +65,6 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-
             ],
         },
     },
@@ -82,16 +89,16 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',  # noqa
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',  # noqa
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',  # noqa
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',  # noqa
     },
 ]
 
@@ -117,8 +124,8 @@ STATICFILES_DIRS = [
 # STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
 
-MEDIA_ROOT=os.path.join(BASE_DIR,"media")
-MEDIA_URL='/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+MEDIA_URL = '/media/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
@@ -145,16 +152,16 @@ LOGGING = {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
             'filename': './logs/debug.log',
-            'formatter' : 'simple',
+            'formatter': 'simple',
         },
         'basic_e': {
             'level': 'WARNING',
             'class': 'logging.FileHandler',
             'filename': './logs/error.log',
-            'formatter' : 'simple',
+            'formatter': 'simple',
         },
     },
-    'formatters':{
+    'formatters': {
         'simple': {
             'format': '{levelname} : {asctime} : {message}',
             'style': '{',
@@ -162,8 +169,8 @@ LOGGING = {
     }
 }
 
-LOGIN_REDIRECT_URL="panel:dashboard"
-LOGIN_URL="panel:login"
+LOGIN_REDIRECT_URL = "panel:dashboard"
+LOGIN_URL = "panel:login"
 LOGOUT_URL = 'panel:logout'
 
 PRINT_LOG = True
@@ -174,7 +181,7 @@ PASSWORD_RESET_TIMEOUT = 86400
 ADMIN_EMAIL = 'sketcherslodge@gmail.com'
 
 LINODE_PAT = config('LINODE_PAT')
-LINODE_API_VERSION='v4'
+LINODE_API_VERSION = 'v4'
 
 GITHUB_API_VERSION = 3
 GITHUB_USER = config('GITHUB_USER')
@@ -189,4 +196,5 @@ GITHUB_WEBHOOK_SECRET = config('GITHUB_WEBHOOK_SECRET')
 # }
 
 
-DEPLOY_PROJECTS_DIR = '/home/netrobe/deploys/projects/'
+# Grappeli customizations
+GRAPPELLI_ADMIN_TITLE = 'Server Monitor Admin'
