@@ -3,11 +3,8 @@
 
 {% block content %}
 
-<div class="card mb-5">
-    <div class="card-header py-3 d-flex align-items-center justify-content-between">
-        <h5 class="mini_tabs_head">React App: {{ app.project_name }}</h5>
-        <a href="{% url 'deploy:react' %}" class='btn btn-sm btn-primary'> <span class='fa fa-arrow-left'></span> Back to apps</a>
-    </div>
+<div class="py-3 d-flex align-items-center justify-content-end">
+    <a href="{% url 'deploy:react' %}" class='btn btn-sm btn-primary'> <span class='fa fa-arrow-left'></span> Back to apps</a>
 </div>
 
 

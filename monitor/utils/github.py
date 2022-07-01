@@ -89,7 +89,6 @@ class GithubClient(BaseAPIClient):
         }
 
         status, result = self.fetch_get('repos', url_values=url_values)
-
         if status == 200:
             for repo in result:
                 branches_url = repo['branches_url'].rstrip('{/branch}')

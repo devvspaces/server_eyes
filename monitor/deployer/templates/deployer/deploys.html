@@ -2,11 +2,8 @@
 
 
 {% block content %}
-    <div class="card">
-        <div class="card-header py-3 d-flex align-items-center justify-content-between">
-            <h5 class="mini_tabs_head">React Apps</h5>
-            <a href="{% url 'deploy:react-new' %}" class='btn btn-primary'> <span class='fa fa-codepen'></span> Deploy new app</a>
-        </div>
+    <div class="py-3 d-flex align-items-center justify-content-end">
+        <a href="{% url 'deploy:react-new' %}" class='btn btn-primary'> <span class='fa fa-codepen'></span> Deploy new app</a>
     </div>
 
     <div class="apps-list">

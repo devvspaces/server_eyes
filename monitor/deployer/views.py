@@ -1,5 +1,5 @@
 import threading
-import time  # noqa
+from typing import Type  # noqa
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -9,11 +9,11 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.html import escape
 from django.views import generic
-from panel.models import Domain, Repository, Subdomain
-from utils.general import (convert_error, get_domain_name, is_ajax)
-from utils.linode import linodeClient
+from panel.models import Domain, Repository
+from utils.general import get_domain_name, is_ajax, refactor_errors
 from utils.logger import err_logger, logger  # noqa
-from utils.mixins import GetServer
+from utils.mixins import DnsUtilityMixin, GetServer
+from utils.typing import DnsType
 
 from .forms import ReactDeployForm
 from .models import ReactApp
@@ -32,7 +32,9 @@ class ReactDeployedApps(LoginRequiredMixin, GetServer, generic.ListView):
         return qset.filter(server=self.get_server())
 
 
-class ReactDeployNewapp(LoginRequiredMixin, GetServer, generic.TemplateView):
+class ReactDeployNewapp(
+    LoginRequiredMixin, GetServer, DnsUtilityMixin, generic.TemplateView
+):
     template_name = 'deployer/deploy-react-app.html'
     extra_context = {
         'title': 'Deploy New React App'
@@ -40,121 +42,87 @@ class ReactDeployNewapp(LoginRequiredMixin, GetServer, generic.TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
-        # Add the repository here
         context["repos"] = Repository.objects.all()
-
-        # Get the domains available
         context['domains'] = Domain.objects.all()
-
         return context
 
     def post(self, request, *args, **kwargs):
-
-        # Get class context
-        cls_context = self.get_context_data()
+        """
+        Create new react app deploys
+        """
+        cls_context: dict = self.get_context_data()
         server = cls_context.get('server')
-
         context = dict()
 
         if is_ajax(request):
-            # Validated data
             form = ReactDeployForm(data=request.POST)
             errors = []
+            http_status = 400
 
             if form.is_valid():
                 validated_data = form.cleaned_data
-
-                # Get to variables
-                project_name, repository, branch,\
-                    domain, subdomain, link = validated_data.values()
+                project_name = validated_data.get('project_name')
+                repository = validated_data.get('repository')
+                branch = validated_data.get('branch')
+                domain = validated_data.get('domain')
+                subdomain = validated_data.get('subdomain')
+                link = validated_data.get('link')
+                client: Type[DnsType] = domain.get_dns_client()
 
                 # Set the target ip
                 target_ip = server.ip_address
 
                 # Check if new subdomain link is passed
                 if link:
-                    # Create new subdomain
                     data = {
                         'name': link,
                         'target': target_ip,
                     }
 
-                    # Add the record type to the data
-                    data['type'] = 'A'
+                    result = self.create_subdomain_record(
+                        client, domain.domain_id, data)
 
-                    status, result\
-                        = linodeClient.create_subdomain(data, domain.domain_id)
-
-                    if status is True:
-                        # Get the target and name
-                        target, name, record_id\
-                            = result['target'], result['name'], result['id']
-
-                        new_obj = {
-                            'target': target,
-                            'name': name,
-                            'record_id': record_id,
-                            'domain_id': domain.domain_id,
-                        }
-
-                        context['data'] = new_obj
-
-                        # Create new subdomain
-                        subdomain = Subdomain.objects.create(**new_obj)
-
-                    else:
-                        errors = result['errors']
-
+                    subdomain = result.get('subdomain')
+                    errors = result.get('errors')
+                    http_status = result.get('http_status')
                 else:
-                    # Meaning Subdomain is seleted
-                    # If subdomain target is not same as hosting server
-                    # Update data
+                    # Update subdomain target to the
+                    # same as hosting server
                     data = {
                         'target': target_ip
                     }
-                    status, result = linodeClient.update_record(
+                    status, result = client.update_record(
                         data, domain.domain_id, subdomain.record_id)
 
                     if status is True:
-                        # Update our db subdomain target
                         subdomain.target = target_ip
                         subdomain.save()
 
-                    else:
-                        errors = result['errors']
-
-                if not errors:
-                    # Save app
-                    new_app = {
-                        'project_name': project_name,
-                        'repository': repository,
-                        'branch': branch,
-                        'domain': domain,
-                        'subdomain': subdomain,
-                        'server': server,
-                    }
-
-                    app = ReactApp.objects.create(**new_app)
-
-                    messages.success(request, 'App is successfully created')
-
-                    context['redirect'] = str(
-                        reverse('deploy:react-app', kwargs={'slug': app.slug}))
-
-                    return JsonResponse(data=context, status=200)
-
+                    errors = result.get('errors')
             else:
-                errors = {'errors': form.errors}
+                errors = refactor_errors(form.errors)
 
-                # Convert error to linode format
-                errors = convert_error(errors)
-                if errors is not None:
-                    errors = errors['errors']
+            if errors:
+                context['errors'] = errors
+                message = 'Error creating React app'
+            else:
+                new_app = {
+                    'project_name': project_name,
+                    'repository': repository,
+                    'branch': branch,
+                    'domain': domain,
+                    'subdomain': subdomain,
+                    'server': server,
+                }
 
-            context['errors'] = errors
+                app = ReactApp.objects.create(**new_app)
+                context['redirect'] = str(
+                    reverse('deploy:react-app', kwargs={'slug': app.slug}))
+                message = 'React App is successfully created'
+                messages.success(request, 'App is successfully created')
 
-            return JsonResponse(data=context, status=400)
+            context['message'] = message
+            return JsonResponse(data=context, status=http_status)
 
 
 class DeployDetail(

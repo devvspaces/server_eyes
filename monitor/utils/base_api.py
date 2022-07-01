@@ -2,7 +2,7 @@
 Base api client abstract module
 """
 
-from typing import Tuple
+from typing import List, Tuple
 import requests
 from requests import Response
 
@@ -102,7 +102,9 @@ class BaseAPIClient:
             raise ValueError('Request method does not exist')
         return func
 
-    def fetch_delete(self, endpoint: str, url_values: dict = None) -> int:
+    def fetch_delete(
+        self, endpoint: str, url_values: dict = None
+    ) -> Tuple[bool, dict]:
         """
         Call delete request for api object
         """
@@ -113,7 +115,7 @@ class BaseAPIClient:
         method = self.get_method_func('delete')
         response: Response = method(url, headers=self.get_headers())
 
-        return response.status_code
+        return response.status_code, response.json()
 
     def fetch_post(
         self, method='post', endpoint='', data=None,
@@ -158,3 +160,45 @@ class BaseAPIClient:
             url, params=params, headers=self.get_headers())
 
         return response.status_code, response.json()
+
+
+class BaseAbstractDNS(BaseAPIClient):
+    """
+    Abstract class for domain name service apis
+    """
+    def __init__(self, endpoints, domain, headers):
+        """
+        Initializes the base api and other properties
+        """
+        super().__init__(
+            endpoints=endpoints, domain=domain, headers=headers)
+
+    def get_domains_list(self):
+        """
+        Get all domains connected to account
+        """
+        raise NotImplementedError
+
+    def create_subdomain(self):
+        """
+        Create subdomain for provided domain
+        """
+        raise NotImplementedError
+
+    def delete_subdomain(self):
+        """
+        Delete subdomain for provided domain
+        """
+        raise NotImplementedError
+
+    def get_subdomains(self):
+        """
+        Returns all subdomains for provided domain
+        """
+        raise NotImplementedError
+
+    def update_record(self):
+        """
+        Updates the record for the domain
+        """
+        raise NotImplementedError

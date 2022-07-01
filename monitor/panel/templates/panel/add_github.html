@@ -3,17 +3,13 @@
 
 {% block content %}
 
-<div class="card mb-5">
-    <div class="card-header py-3 d-flex align-items-center justify-content-between">
-        <h5 class="mini_tabs_head">Github Account</h5>
-        <a href="{% url 'panel:dashboard' %} " class='btn btn-sm btn-primary'> <span class='fa fa-arrow-left'></span> Back</a>
-    </div>
+<div class="pb-3 mb-3 d-flex align-items-center justify-content-end">
+    <a href="{% url 'panel:github_list' %} " class='btn btn-sm btn-primary'> <span class='fa fa-arrow-left'></span> Leave</a>
 </div>
     
 
-<form class="custom-deploy-form" method='post'>
+<form class="custom-deploy-form mb-4" method='post'>
     {% csrf_token %}
-    <legend class="display-6">Add GitHub Account</legend>
 
     {% include 'panel/similar_github_add.html' %}
 

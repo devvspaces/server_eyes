@@ -2,15 +2,25 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta name="description" content="">
-        <meta name="keywords" content="">
-        <meta name="author" content="devvspaces">
-        <link rel="icon" href="{% static 'images/favicon.png' %}" type="image/x-icon">
-        <link rel="shortcut icon" href="{% static 'images/favicon.png' %}" type="image/x-icon">
+        <!-- Head -->
+        {% include 'panel/includes/head/main.html' %}
 
+        <!-- Google font-->
+        {% include 'panel/includes/css/fonts.html' %}
+        
+        <!-- Icons -->
+        {% include 'panel/includes/css/icons.html' %}
+
+        <!-- Plugins css start-->
+        <link rel="stylesheet" type="text/css" href="{% static 'css/vendors/scrollbar.css' %}">
+
+        {% block css_plugins %}
+        {% endblock css_plugins %}
+
+        <!-- Plugins css Ends-->
+
+        <!-- Main css -->
+        {% include 'panel/includes/css/main.html' %}
 
         {% if title %}
         <title>Server Monitor - {{ title }}</title>
@@ -18,36 +28,8 @@
         <title>Server Monitor</title>
         {% endif %}
 
-
-
-        <!-- Google font-->
-        <link href="https://fonts.googleapis.com/css?family=Rubik:400,400i,500,500i,700,700i&amp;display=swap" rel="stylesheet">
-        <link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,500,500i,700,700i,900&amp;display=swap" rel="stylesheet">
-        <link rel="stylesheet" type="text/css" href="{% static 'css/font-awesome.css' %}">
-        <!-- ico-font-->
-        <link rel="stylesheet" type="text/css" href="{% static 'css/vendors/icofont.css' %}">
-        <!-- Themify icon-->
-        <link rel="stylesheet" type="text/css" href="{% static 'css/vendors/themify.css' %}">
-        <!-- Flag icon-->
-        <link rel="stylesheet" type="text/css" href="{% static 'css/vendors/flag-icon.css' %}">
-        <!-- Feather icon-->
-        <link rel="stylesheet" type="text/css" href="{% static 'css/vendors/feather-icon.css' %}">
-        <!-- Plugins css start-->
-        <link rel="stylesheet" type="text/css" href="{% static 'css/vendors/scrollbar.css' %}">
-        <link rel="stylesheet" type="text/css" href="{% static 'css/vendors/animate.css' %}">
-        <link rel="stylesheet" type="text/css" href="{% static 'css/vendors/chartist.css' %}">
-        <link rel="stylesheet" type="text/css" href="{% static 'css/vendors/date-picker.css' %}">
-        <!-- Plugins css Ends-->
-        <!-- Bootstrap css-->
-        <link rel="stylesheet" type="text/css" href="{% static 'css/vendors/bootstrap.css' %}">
-        <!-- App css-->
-        <link rel="stylesheet" type="text/css" href="{% static 'css/main.css' %}">
-        <link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
-        <link id="color" rel="stylesheet" href="{% static 'css/color-1.css' %}" media="screen">
-        <!-- Responsive css-->
-        <link rel="stylesheet" type="text/css" href="{% static 'css/responsive.css' %}">
     </head>
-    <body onload="startTime()">
+    <body>
         <div class="loader-wrapper">
             <div class="loader-index"><span></span></div>
             <svg>
@@ -58,6 +40,13 @@
                 </filter>
             </svg>
         </div>
+
+        <div id='loader_container'>
+
+			<div id='loader_span'></div>
+
+		</div>
+
         <!-- tap on top starts-->
         <div class="tap-top"><i data-feather="chevrons-up"></i></div>
         <!-- tap on tap ends-->
@@ -183,7 +172,7 @@
                                     <li><a href="#"><i data-feather="mail"></i><span>Inbox</span></a></li>
                                     <li><a href="#"><i data-feather="file-text"></i><span>Taskboard</span></a></li>
                                     <li><a href="#"><i data-feather="settings"></i><span>Settings</span></a></li>
-                                    <li><a href="{% url 'panel:logout' %}"><i data-feather="log-out"> </i><span>Log out</span></a></li>
+                                    <li><a href="{% url 'account:logout' %}"><i data-feather="log-out"> </i><span>Log out</span></a></li>
                                 </ul>
                             </li>
                         </ul>
@@ -245,16 +234,21 @@
                                             <span class="lan-6">Domains</span>
                                         </a>
                                         <ul class="sidebar-submenu">
-                                            <li><a href="#">All Domains</a></li>
+                                            <li><a href="{% url 'panel:domain-list' %}">All Domains</a></li>
                                             <li><a href="#">Add new domain</a></li>
                                             <li><a href="#">Domain Redirects</a></li>
                                         </ul>
                                     </li>
+                                    
                                     <li class="sidebar-list">
-                                        <a class="sidebar-link sidebar-title link-nav" href="#">
+                                        <a class="sidebar-link sidebar-title" href="#">
                                             <i data-feather="github"></i>
-                                            <span>Github Accounts</span>
+                                            <span class="lan-6">Github Accounts</span>
                                         </a>
+                                        <ul class="sidebar-submenu">
+                                            <li><a href="{% url 'panel:github_list' %}">Connected Github Accounts</a></li>
+                                            <li><a href="{% url 'panel:github_account_create' %}">Connect Github Account</a></li>
+                                        </ul>
                                     </li>
 
                                     {% if server %}
@@ -292,7 +286,7 @@
                                                 <span class="lan-6">Applications</span>
                                             </a>
                                             <ul class="sidebar-submenu">
-                                                <li><a href="#">React</a></li>
+                                                <li><a href="{% url 'deploy:react' %}">React</a></li>
                                                 <li><a href="#">Python <label class="badge badge-info" style="top: 7px;">Soon!</label></a></li>
                                                 <li><a href="#">Php <label class="badge badge-info" style="top: 7px;">Soon!</label></a></li>
                                                 <li><a href="#">Basic <label class="badge badge-info" style="top: 7px;">Soon!</label></a></li>
@@ -352,6 +346,11 @@
                             </div>
                             {% endfor %}
                     {% endif %}
+
+                    <div class="alerts-container">
+        
+                    </div>
+
                     <!-- Messages ends -->
 
 
@@ -368,7 +367,7 @@
                     <div class="container-fluid">
                         <div class="row">
                             <div class="col-md-12 footer-copyright text-center">
-                                <p class="mb-0">Copyright 2022 © Cuba theme by pixelstrap  </p>
+                                <p class="mb-0">Copyright 2022 © Server Monitor  </p>
                             </div>
                         </div>
                     </div>
@@ -389,28 +388,13 @@
         <script src="{% static 'js/config.js' %}"></script>
         <!-- Plugins JS start-->
         <script src="{% static 'js/sidebar-menu.js' %}"></script>
-        <script src="{% static 'js/chart/chartist/chartist.js' %}"></script>
-        <script src="{% static 'js/chart/chartist/chartist-plugin-tooltip.js' %}"></script>
-        <script src="{% static 'js/chart/knob/knob.min.js' %}"></script>
-        <script src="{% static 'js/chart/knob/knob-chart.js' %}"></script>
-        <script src="{% static 'js/chart/apex-chart/apex-chart.js' %}"></script>
-        <script src="{% static 'js/chart/apex-chart/stock-prices.js' %}"></script>
-        <script src="{% static 'js/notify/bootstrap-notify.min.js' %}"></script>
-        <script src="{% static 'js/dashboard/default.js' %}"></script>
-        <script src="{% static 'js/notify/index.js' %}"></script>
-        <script src="{% static 'js/datepicker/date-picker/datepicker.js' %}"></script>
-        <script src="{% static 'js/datepicker/date-picker/datepicker.en.js' %}"></script>
-        <script src="{% static 'js/datepicker/date-picker/datepicker.custom.js' %}"></script>
-        <script src="{% static 'js/typeahead/handlebars.js' %}"></script>
-        <script src="{% static 'js/typeahead/typeahead.bundle.js' %}"></script>
-        <script src="{% static 'js/typeahead/typeahead.custom.js' %}"></script>
-        <script src="{% static 'js/typeahead-search/handlebars.js' %}"></script>
-        <script src="{% static 'js/typeahead-search/typeahead-custom.js' %}"></script>
+        <script src="{% static 'js/sweet-alert/sweetalert.min.js' %}"></script>
+
+        {% block js_plugins %}
+        {% endblock js_plugins %}
+
         <!-- Plugins JS Ends-->
-        <!-- Theme js-->
         <script src="{% static 'js/script.js' %}"></script>
-        <script src="{% static 'js/theme-customizer/customizer.js' %}"></script>
-        <!-- login js-->
-        <!-- Plugin used-->
+        <script src="{% static 'js/main.js' %}"></script>
     </body>
 </html>

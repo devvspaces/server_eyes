@@ -2,7 +2,7 @@
 
 
 {% block content %}
-    <div class="card">
+    <div class="card mb-0">
         <div class="card-header py-3 d-flex align-items-center justify-content-between">
             <h5 class="mini_tabs_head">Domains List</h5>
             <a href="{% url 'panel:domain-list-update' %}" class='btn btn-sm btn-secondary reload-btn'> <span class='fa fa-refresh'></span> Reload</a>
@@ -11,9 +11,10 @@
 
     <div class="card-body domain-name-card-body manage-link-a">
         <table class="table table-hover">
-            <thead>
+            <thead class="">
                 <tr>
                     <th scope="col">#</th>
+                    <th scope="col">DNS Provider</th>
                     <th scope="col">Domain name</th>
                     <th scope="col">SOA Email</th>
                     <th scope="col">Status</th>
@@ -28,6 +29,7 @@
                     {% for domain in list_domains_processed %}
                         <tr>
                             <th scope="row">{{ forloop.counter }}</th>
+                            <th>{{ domain.get_domain_provider_display }}</th>
                             <td><a href="{% url 'panel:domain-detail' domain.domain_id %}" class="text-decoration-none">{{ domain.domain }}</a></td>
                             <td>{{ domain.soa_email }}</td>
                             <td><span class="badge bg-{{ domain.status_tag }}">{{ domain.status }}</span></td>

@@ -1,0 +1,118 @@
+{% extends 'panel/base.html' %}
+
+
+{% block content %}
+
+
+
+{% if perms.panel.view_server %}
+<div class="card mt-4">
+    <div class="card-header py-3">
+        <h6 class="mini_tabs_head">Servers</h6>
+    </div>
+
+    <div class="card-body">
+        <div class="mini_tabs">
+
+            {% for server in servers %}
+            
+            <a href="{% url 'panel:server_page' server.slug_name %}" class="mini_tab">
+                <h6>{{ server.name }}</h6>
+                <p>{{ server.ip_address }}</p>
+            </a>
+
+            {% endfor %}
+
+            {% if servers.count == 0 %}
+            <h5 class='py-4'>No Servers added yet</h5>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+{% endif %}
+    
+
+
+<div class="card mt-4">
+    <div class="card-header py-3">
+        <h6 class="mini_tabs_head">All Websites</h6>
+    </div>
+
+    <div class="card-body">
+        <div class="mini_tabs">
+
+            {% for website in websites %}
+            
+            <a href="{% url 'panel:website' website.server.slug_name website.conf_filename %}" class="mini_tab 
+            {% if not website.active %}
+                not_active
+            {% endif %}
+                ">
+                <h6>{{ website.name }}</h6>
+                <p>{{ website.last_checked }}</p>
+            </a>
+
+            {% endfor %}
+
+            {% if websites.count == 0 %}
+            <h5 class='py-4'>No websites added yet</h5>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+
+
+<div class="card mt-4">
+    <div class="card-header py-3">
+        <h6 class="mini_tabs_head">General</h6>
+    </div>
+
+    <div class="card-body">
+        <div class="mini_tabs">
+            
+            <a href="{% url 'panel:domain-list' %}" class="mini_tab">
+                <h6>Domain Lists</h6>
+            </a>
+
+            <a href="#" class="mini_tab">
+                <h6>File Manager</h6>
+                <p class='fw-bold text-muted'>Coming soon!</p>
+            </a>
+
+        </div>
+    </div>
+</div>
+
+
+<div class="card mt-4">
+    <div class="card-header py-3 d-flex">
+        <h6 class="mini_tabs_head">Github Accounts</h6>
+
+        <div class="ms-auto d-flex align-items-center">
+            <a href="{% url 'panel:github_account_create' %}" class="btn btn-sm btn-primary">Add Github Account</a>
+        </div>
+    </div>
+
+    <div class="card-body">
+        <div class="mini_tabs">
+
+            {% for github_account in github_accounts %}
+            
+                <a href="{% url 'panel:github_detail' github_account.username %}" class="mini_tab">
+                    <h6>{{ github_account.username }}</h6>
+                    <p>Created: <br> {{ github_account.created }}</p>
+                </a>
+
+            {% endfor %}
+
+            {% if github_accounts.count == 0 %}
+                <h5 class='py-4'>No Github accounts added yet</h5>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+
+{% endblock content %}

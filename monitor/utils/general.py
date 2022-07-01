@@ -1,8 +1,10 @@
 import datetime
+from functools import reduce
 import re
 import shlex
 import socket
 import subprocess
+from typing import Dict
 
 import requests
 from cryptography.fernet import Fernet, InvalidToken
@@ -10,6 +12,7 @@ from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.mail import send_mail
 from django.utils.safestring import mark_safe
+from django.db.models import QuerySet
 
 from .logger import err_logger, logger  # noqa
 
@@ -101,7 +104,7 @@ def printt(*args, **kwargs):
         return print(*args, **kwargs)
 
 
-def get_required_data(dict_like_obj, req_data=None):
+def get_required_data(dict_like_obj, req_data=None) -> dict:
     """
     This is a function used to get the required
     keys from a post or get request, to be passed
@@ -111,7 +114,7 @@ def get_required_data(dict_like_obj, req_data=None):
     if req_data is None:
         req_data = []
 
-    data = {}
+    data = dict()
 
     for i in req_data:
         data[i] = dict_like_obj.get(i, '')
@@ -175,8 +178,18 @@ def get_next_link(request):
     return verify_next_link(next)
 
 
-def add_queryset(a, b):
+def add_queryset(a, b) -> QuerySet:
+    """
+    Add two querysets
+    """
     return a | b
+
+
+def merge_querysets(*args) -> QuerySet:
+    """
+    Merge querysets
+    """
+    return reduce(add_queryset, args)
 
 
 def get_website_state(website):
@@ -239,7 +252,7 @@ def get_name_from_text(name: str, text: str):
         return match.group(1)
 
 
-def convert_error(data: dict):
+def convert_error(data: dict) -> Dict[str, dict]:
     """
     Function to convert errors from django format to linode format
     """
@@ -266,6 +279,17 @@ def convert_error(data: dict):
 
     # Return the processed errors
     return {'errors': processed_errors}
+
+
+def refactor_errors(errors: dict) -> Dict[str, dict]:
+    errors = {'errors': errors}
+
+    # Convert error to accepted format
+    errors = convert_error(errors)
+    if errors is not None:
+        errors = errors['errors']
+
+    return errors
 
 
 # Get if a request is an ajax request

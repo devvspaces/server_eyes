@@ -1,26 +1,24 @@
 import json
 import threading
 import time  # noqa
+from typing import Dict, List, Type, Union  # noqa
 
 from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.mixins import (LoginRequiredMixin,
-                                        PermissionRequiredMixin)
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views import generic
 from django.views.decorators.csrf import csrf_exempt
 from services.models import Service, Website, WebsiteUrl
-from utils.general import (convert_error, get_required_data, is_ajax,
-                           verify_next_link)
+from utils.general import get_required_data, is_ajax, refactor_errors
 from utils.github import GithubClient
-from utils.linode import linodeClient
 from utils.logger import err_logger, logger  # noqa
-from utils.mixins import GetServer
+from utils.mixins import GetServer, DnsUtilityMixin
+from utils.typing import DnsType
 
 from .forms import (GetLogForm, GithubAccountUserUpdateForm, GithubCreateForm,
-                    GithubUpdateForm, LoginForm, SubdomainForm)
+                    GithubUpdateForm, SubdomainForm, DeleteSubdomainForm)
 from .models import (Domain, GithubAccount, Repository, RepositoryUser, Server,
                      Subdomain)
 
@@ -78,41 +76,6 @@ def github_receive_webhook(request):
         err_logger.exception(e)
 
     return HttpResponse(status=400)
-
-
-def login_view(request):
-    """
-    Login view
-    """
-    context = {}
-    form = LoginForm()
-
-    if request.POST:
-        form = LoginForm(request.POST)
-
-        if form.is_valid():
-            username = form.cleaned_data.get('username')
-            password = form.cleaned_data.get('password')
-
-            user = authenticate(request, username=username, password=password)
-            if user:
-                login(request, user)
-
-                # Get next link
-                next = verify_next_link(request.POST.get('next'))
-                next = next if next else reverse('panel:dashboard')
-
-                messages.success(request, f"Welcome, {username}.")
-                return redirect(next)
-
-    context['form'] = form
-
-    return render(request, 'panel/login.html', context)
-
-
-def logout_view(request):
-    logout(request)
-    return redirect('panel:login')
 
 
 class Dashboard(
@@ -356,34 +319,48 @@ class DomainList(LoginRequiredMixin, GetServer, generic.ListView):
     context_object_name = 'list_domains_processed'
 
 
-# Function based view to update the domain list from linode
 def update_domain_list(request):
-    # Get domains from linode
-    domains = linodeClient.get_domains_list()
+    """
+    Function based view to update the domain list from available
+    domain name service providers
 
-    for domain in domains:
-        # Get the bootstrap tag to use for the status
-        status = domain.get('status')
-        status_tag = 'success' if status == 'active' else 'danger'
+    :param request: _description_
+    :type request: _type_
+    :return: _description_
+    :rtype: _type_
+    """
+    # Get domains from dns providers
+    dns_clients: Dict[str, Type[DnsType]] = Domain.get_dns_clients()
 
-        new_obj = {
-            'domain': domain.get('domain'),
-            'domain_id': domain.get('id'),
-            'status': status,
-            'status_tag': status_tag,
-            'soa_email': domain.get('soa_email'),
-        }
+    for _id, client in dns_clients.items():
+        domains: List[Dict[str, str]] = client.get_domains_list()
+        for domain in domains:
+            # Get the bootstrap tag to use for the status
+            status = domain.get('status')
+            status_tag = 'success' if status == 'active' else 'danger'
 
-        # Create or update domain objects
-        # NOTE: Refactor this statement
-        Domain.objects.update_or_create(**new_obj)
+            new_obj = {
+                'domain': domain.get('domain'),
+                'domain_id': domain.get('id'),
+                'status': status,
+                'status_tag': status_tag,
+                'soa_email': domain.get('soa_email'),
+                'domain_provider': _id
+            }
+
+            Domain.objects.update_or_create(
+                domain_id=new_obj['domain_id'],
+                defaults=new_obj
+            )
 
     messages.success(request, 'Domain list is successfully updated')
 
     return redirect('panel:domain-list')
 
 
-class DomainDetail(LoginRequiredMixin, GetServer, generic.DetailView):
+class DomainDetail(
+    LoginRequiredMixin, GetServer, DnsUtilityMixin, generic.DetailView
+):
     select_server_redirect = False
     template_name = 'panel/domain-detail.html'
     model = Domain
@@ -396,6 +373,7 @@ class DomainDetail(LoginRequiredMixin, GetServer, generic.DetailView):
 
         # Get the domain and set title
         domain = self.object
+        context['title'] = domain.domain
 
         main_domain_ip = ''
         list_records_processed = []
@@ -426,73 +404,130 @@ class DomainDetail(LoginRequiredMixin, GetServer, generic.DetailView):
 
         return context
 
+    def get_create_subdomain_data(self):
+        req_data = ['name', 'target', 'ttl_sec']
+        return get_required_data(self.request.POST, req_data)
+
+    def create_subdomain(
+        self, client: DnsType,
+        domain_id: str, data: dict = None
+    ):
+        context = dict()
+
+        if data is None:
+            data = self.get_create_subdomain_data()
+
+        errors = []
+        http_status = 400
+
+        form = SubdomainForm(data=data)
+        if form.is_valid():
+            data = form.cleaned_data
+            result = self.create_subdomain_record(client, domain_id, data)
+
+            message = "New subdomain created \
+successfully, reloading page now."
+            errors = result.get('errors')
+            http_status = result.get('http_status')
+        else:
+            errors = refactor_errors(form.errors)
+
+        if errors:
+            context['errors'] = errors
+            message = 'Error occured while trying \
+to create domain, check errors.'
+
+        context['message'] = message
+
+        return JsonResponse(data=context, status=http_status)
+
+    def delete_subdomain(
+        self, client: DnsType,
+        domain_id: str, record_id: str
+    ):
+        context = dict()
+        data = {
+            'record_id': record_id
+        }
+
+        errors = []
+        http_status = 400
+
+        form = DeleteSubdomainForm(data=data)
+        if form.is_valid():
+            status, result = client.delete_subdomain(domain_id, record_id)
+            errors = result.get('errors')
+            if status is True:
+                message = "Poof! Your subdomain record has been deleted!"
+                http_status = 200
+                form.delete()
+            errors = result.get('errors')
+        else:
+            errors = refactor_errors(form.errors)
+
+        if errors:
+            context['errors'] = errors
+            message = 'Error deleting subdomain record'
+
+        context['message'] = message
+        return JsonResponse(data=context, status=http_status)
+
+    def update_subdomain(self, client: DnsType, domain_id: str):
+        context = dict()
+        req_data = ['name', 'target', 'record_id']
+        data = get_required_data(self.request.POST, req_data)
+        record_id = data.get('record_id')
+
+        errors = []
+        http_status = 400
+
+        form = SubdomainForm(data=data)
+        if form.is_valid():
+            status, result = client.update_record(data, domain_id, record_id)
+            errors = result.get('errors')
+            if status is True:
+                message = "Yay! Your subdomain record has been updated!"
+                http_status = 200
+                form.update()
+            errors = result.get('errors')
+        else:
+            errors = refactor_errors(form.errors)
+
+        if errors:
+            context['errors'] = errors
+            message = 'Error updating subdomain record'
+        context['message'] = message
+
+        return JsonResponse(data=context, status=http_status)
+
     def post(self, request, *args, **kwargs):
         if is_ajax(request):
-            context = dict()
+            domain: Type[Domain] = self.get_object()
+            client: Type[DnsType] = domain.get_dns_client()
 
-            # Get the domain object
-            domain = self.get_object()
-
-            # Get the data from the form
-            req_data = ['name', 'target', 'ttl_sec']
-            data = get_required_data(request.POST, req_data)
-
-            errors = []
-
-            # Validate the required data
-            form = SubdomainForm(data=data)
-            if form.is_valid():
-
-                # Get the validated data
-                data = form.cleaned_data
-
-                # Add the record type to the data
-                data['type'] = 'A'
-
-                status, result = linodeClient.create_subdomain(
-                    data, domain.domain_id)
-
-                if status is True:
-                    # Get the target and name
-                    target = result['target']
-                    name = result['name']
-                    record_id = result['id']
-
-                    new_obj = {
-                        'target': target,
-                        'name': name,
-                        'record_id': record_id,
-                        'domain_id': domain.domain_id,
-                    }
-
-                    context['data'] = new_obj
-
-                    # Create new subdomain
-                    Subdomain.objects.create(**new_obj)
-
-                    return JsonResponse(data=context, status=200)
-
-                errors = result['errors']
-
+            type_name = request.POST.get('type')
+            if type_name == 'delete':
+                record_id = request.POST.get('record_id')
+                return self.delete_subdomain(
+                    client, domain.domain_id, record_id)
+            elif type_name == 'update':
+                return self.update_subdomain(client, domain.domain_id)
             else:
-                errors = {'errors': form.errors}
-
-                # Convert error to linode format
-                errors = convert_error(errors)
-                if errors is not None:
-                    errors = errors['errors']
-
-            context['errors'] = errors
-
-            print(context)
-
-            return JsonResponse(data=context, status=400)
+                return self.create_subdomain(client, domain.domain_id)
 
 
-# Function based view to update the domain list from linode
-def update_subdomain_list(request, domain_id):
+def update_subdomain_list(request, domain_id: str):
+    """
+    Function based view to update the domain list
+    from main domain dns provider
+
+    :param domain_id: Domain id in database
+    :type domain_id: string
+    :return: Http redirect to domain detail page
+    """
     # Get the domain and set title
-    domain = get_object_or_404(Domain, domain_id=domain_id)
+    domain: Type[Domain] = get_object_or_404(Domain, domain_id=domain_id)
+    client: Type[DnsType] = domain.get_dns_client()
 
     # Get subdomains for domain
     subdomains = Subdomain.objects.filter(domain_id=domain.domain_id)
@@ -500,10 +535,9 @@ def update_subdomain_list(request, domain_id):
     # Set updated subdomain list
     updated_sub_list = []
 
-    # Get subdomains for domain from linode
-    linode_subdomains = linodeClient.get_subdomains(domain.domain_id)
+    dns_subdomains = client.get_subdomains(domain.domain_id)
 
-    for record in linode_subdomains:
+    for record in dns_subdomains:
         name = record.get('name')
         target = record.get('target')
         record_id = record.get('id')
@@ -533,7 +567,7 @@ def update_subdomain_list(request, domain_id):
             updated_sub_list.append(new_obj)
 
     # Delete subdomains that are not processed. Because this means that
-    # they are not in linode anymore
+    # they are not in dns provider domain list anymore
     for current in subdomains:
         # value to know whether it is there or not
         is_available = False
@@ -550,7 +584,16 @@ def update_subdomain_list(request, domain_id):
     return redirect(reverse('panel:domain-detail', args=[domain_id]))
 
 
-# Github account detail page
+class GithubAccountList(LoginRequiredMixin, GetServer, generic.ListView):
+    select_server_redirect = False
+    template_name = 'panel/github_accounts.html'
+    model = GithubAccount
+    context_object_name = 'github_accounts'
+    extra_context = {
+        'title': 'Github Accounts'
+    }
+
+
 class GithubAccountDetail(LoginRequiredMixin, GetServer, generic.DetailView):
     select_server_redirect = False
     template_name = 'panel/github_account.html'
@@ -558,14 +601,14 @@ class GithubAccountDetail(LoginRequiredMixin, GetServer, generic.DetailView):
     slug_url_kwarg = 'username'
     model = GithubAccount
     context_object_name = 'github_account'
+    extra_context = {
+        'title': 'Github Account Page'
+    }
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
         object = self.get_object()
-
-        # Set title
-        context['title'] = object.username
 
         # Get available repositories
         context["repository_users"] = object.repositoryuser_set.all()
@@ -617,15 +660,15 @@ class GithubAccountUpdate(LoginRequiredMixin, GetServer, generic.DetailView):
     slug_url_kwarg = 'username'
     model = GithubAccount
     context_object_name = 'github_account'
+    extra_context = {
+        'title': 'Update Github Account'
+    }
 
     def get_context_data(self, **kwargs):
         object = self.get_object()
         self.object = object
 
         context = super().get_context_data(**kwargs)
-
-        # Set title
-        context['title'] = object.username
 
         # Get available repositories
         context["repository_users"] = object.repositoryuser_set.all()

@@ -68,7 +68,7 @@ a{
 }
 .mini_tabs .mini_tab:not(.not_active):hover {
     transform: translateY(-5px);
-    background-color: rgb(156, 156, 156);
+    background-color: rgb(218 214 255);
 }
 .mini_tabs_head{
     margin: 0;
@@ -393,8 +393,7 @@ background: #555;
 /* Create form deploy */
 .custom-deploy-form{
     max-width: 500px;
-    background: rgb(180,238,232);
-    background: linear-gradient(320deg, rgba(180,238,232,0.9) 43%, rgba(36, 140, 226, 0.257) 100%);
+    background: #fff;
     padding: 2rem 1rem;
     border-radius: .5rem;
 }

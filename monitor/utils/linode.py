@@ -2,12 +2,12 @@
 Linode api client wrapper
 """
 
-from typing import List
+from typing import List, Tuple
 from django.conf import settings
-from .base_api import BaseAPIClient
+from .base_api import BaseAbstractDNS
 
 
-class LinodeClient(BaseAPIClient):
+class LinodeClient(BaseAbstractDNS):
     """
     Wrapper for linode api
     """
@@ -17,7 +17,7 @@ class LinodeClient(BaseAPIClient):
         """
 
         # Set the linode api version here
-        domain = f"https://api.linode.com/{self.get_linode_version()}/"
+        domain = f"https://api.linode.com/{self.__get_linode_version()}/"
 
         # Define endpoints
         domains = 'domains'
@@ -33,9 +33,10 @@ class LinodeClient(BaseAPIClient):
             'Authorization': f'Bearer {self.__personal_access_token}',
         }
 
-        super().__init__(endpoints=endpoints, domain=domain, headers=headers)
+        super().__init__(
+            endpoints=endpoints, domain=domain, headers=headers)
 
-    def get_linode_version(self) -> str:
+    def __get_linode_version(self) -> str:
         """
         Return the version for the linode api
         """
@@ -49,9 +50,11 @@ class LinodeClient(BaseAPIClient):
         status, data = self.fetch_get('domains_list')
 
         if status == 200:
-            return data[data]
+            return data['data']
 
-    def create_subdomain(self, data: dict, domain_id):
+    def create_subdomain(
+        self, data: dict, domain_id: str
+    ) -> Tuple[bool, dict]:
         """
         Create subdomain for provided domain
 
@@ -65,7 +68,26 @@ class LinodeClient(BaseAPIClient):
         status = status == 200
         return status, data
 
-    def is_A_record(self, record: dict):
+    def delete_subdomain(
+        self, domain_id: str, record_id: str
+    ) -> Tuple[bool, dict]:
+        """
+        Delete subdomain record for provided domain
+
+        Args:
+            Domain is the An instance of the main domain
+        """
+        url_values = {
+            '-domainId-': domain_id,
+            '-recordId-': record_id,
+        }
+        status, data = self.fetch_delete(
+            endpoint='record_update', url_values=url_values
+        )
+        status = status == 200
+        return status, data
+
+    def __is_A_record(self, record: dict) -> bool:
         """
         Checks if a record is of Type 'A'
         """
@@ -73,14 +95,14 @@ class LinodeClient(BaseAPIClient):
         record_type = record.get('type')
         return record_type == 'A'
 
-    def parse_subdomains(self, records: list):
+    def __parse_subdomains(self, records: list) -> List[dict]:
         """
         Returns a list of only subdomains
         """
 
-        return [record for record in records if self.is_A_record(record)]
+        return [record for record in records if self.__is_A_record(record)]
 
-    def get_subdomains(self, domain_id):
+    def get_subdomains(self, domain_id: str) -> List[dict]:
         """
         Returns all subdomains for provided domain
 
@@ -96,11 +118,13 @@ class LinodeClient(BaseAPIClient):
             return []
 
         all_records = data['data']
-        subdomains = self.parse_subdomains(all_records)
+        subdomains = self.__parse_subdomains(all_records)
 
         return subdomains
 
-    def update_record(self, data, domain_id, record_id):
+    def update_record(
+        self, data: dict, domain_id: str, record_id: str
+    ) -> Tuple[bool, dict]:
         """
         Updates the record for the domain
         """

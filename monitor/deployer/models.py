@@ -42,9 +42,9 @@ class BaseApp(ModelChangeFunc):
 
     # Domain
     domain = models.ForeignKey(
-        'panel.Domain', on_delete=models.DO_NOTHING, null=True)
+        'panel.Domain', on_delete=models.SET_NULL, null=True)
     subdomain = models.ForeignKey(
-        'panel.Subdomain', on_delete=models.DO_NOTHING, null=True)
+        'panel.Subdomain', on_delete=models.SET_NULL, null=True)
 
     # Status
     status = models.CharField(
@@ -103,8 +103,9 @@ class BaseApp(ModelChangeFunc):
         :return: link
         :rtype: str
         """
-
-        return f"{self.subdomain.get_name()}.{self.domain.domain}"
+        if self.subdomain is not None and self.domain is not None:
+            return f"{self.subdomain.get_name()}.{self.domain.domain}"
+        return ''
 
     def get_link(self) -> str:
         """
@@ -113,8 +114,10 @@ class BaseApp(ModelChangeFunc):
         :return: link
         :rtype: str
         """
-
-        return f"http://{self.raw_link()}"
+        raw_link = self.raw_link()
+        if raw_link:
+            return f"http://{raw_link}"
+        return raw_link
 
     @property
     def process(self) -> ServerProcess:

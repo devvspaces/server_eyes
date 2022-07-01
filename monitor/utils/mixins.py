@@ -1,14 +1,13 @@
+from typing import Dict, Type, Union
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.contrib import messages
-from django.db import models
-from django.http import HttpResponseBadRequest
 from django.shortcuts import redirect
 from django.urls import reverse
 
-from panel.models import Server
+from panel.models import Server, Subdomain
 
 from utils.general import printt as print
-from utils.general import cryptor
+from utils.typing import DnsType
 
 
 class SelectServerException(Exception):
@@ -16,6 +15,7 @@ class SelectServerException(Exception):
 
     def __init__(self):
         super().__init__('SelectServerException')
+
 
 class CustomTestMixin(UserPassesTestMixin):
 
@@ -34,9 +34,17 @@ class CustomTestMixin(UserPassesTestMixin):
         return redirect('dashboard:home')
 
 
-
-# Get server and add to context
 class GetServer(object):
+    """
+    Get server and add to context
+
+    :param object: _description_
+    :type object: _type_
+    :raises SelectServerException: _description_
+    :raises SelectServerException: _description_
+    :return: _description_
+    :rtype: _type_
+    """
     select_server_redirect = True
     server = None
 
@@ -52,7 +60,7 @@ class GetServer(object):
             if not server_name:
                 if self.select_server_redirect:
                     raise SelectServerException
-        
+
         try:
             if server_name:
                 # Get server obj
@@ -60,7 +68,7 @@ class GetServer(object):
                 self.server = server
 
                 return server
-        
+
         except Server.DoesNotExist:
             raise SelectServerException
 
@@ -71,3 +79,53 @@ class GetServer(object):
         context["server"] = self.get_server()
 
         return context
+
+
+class DnsUtilityMixin:
+    """
+    Simple utility mixin with functions
+    for subdomain views
+    """
+    def create_subdomain_record(
+        self, client: DnsType, domain_id: str, data: dict
+    ) -> Dict[str, Union[str, int, Type[Subdomain]]]:
+        """
+        _summary_
+
+        :param client: _description_
+        :type client: DnsType
+        :param domain_id: _description_
+        :type domain_id: str
+        :param data: _description_
+        :type data: dict
+        :return: _description_
+        :rtype: Dict[str, Union[str, int, Type[Subdomain]]]
+        """
+        data['type'] = 'A'
+
+        status, result = client.create_subdomain(
+            data, domain_id)
+        subdomain = None
+        http_status = 400
+
+        if status is True:
+            target = result['target']
+            name = result['name']
+            record_id = result['id']
+
+            new_obj = {
+                'target': target,
+                'name': name,
+                'record_id': record_id,
+                'domain_id': domain_id,
+            }
+
+            subdomain = Subdomain.objects.create(**new_obj)
+            http_status = 200
+
+        result = {
+            'subdomain': subdomain,
+            'errors': result.get('errors'),
+            'http_status': http_status,
+        }
+        return result

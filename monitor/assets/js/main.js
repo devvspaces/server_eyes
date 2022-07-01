@@ -1,6 +1,18 @@
 $(function() {
     "use strict";
 
+	// Always select theme to use
+	let seleteTheme = () => {
+		$("body").append('');
+		var boxed = "";
+		if ($(".page-wrapper").hasClass("box-layout")) {
+			boxed = "box-layout";
+		}
+		$(".page-wrapper").attr("class", "page-wrapper compact-wrapper " + boxed);
+		localStorage.setItem('page-wrapper', 'compact-wrapper');
+	}
+	seleteTheme()
+
 	// Code to pause and play loader
 	function playLoader(){
 		$('#loader_container').addClass('active')
@@ -206,6 +218,19 @@ $(function() {
 	}
 
 
+	function timeRedirect(time=3, redirect=''){
+		// Reload site after 3 seconds
+		let reload_time = 1000 * time;
+		setTimeout(function(){
+			if (redirect !== undefined && redirect !== null && (redirect.length > 0)){
+				location.href = redirect;
+			} else {
+				location.reload();
+			}
+		}, reload_time)
+	}
+
+
 	function submitForm(e) {
 		e.preventDefault()
 		let form = this
@@ -286,6 +311,8 @@ $(function() {
 	function submitAddSubdomainForm(e) {
 		e.preventDefault()
 		let form = this
+		console.log('What is this')
+		console.log(this)
 		let formData = $(this).serialize();
 
 		let thisURL = this.action
@@ -305,31 +332,15 @@ $(function() {
 			url: thisURL,
 			data: formData,
 			success: function (data){
-				// Pause loader
 				stopLoader()
-
-                // Create alert
-				if (success_text){
-					createAlert(success_text)
-				} else {
-					createAlert('New subdomain created successfully, reloading page now.')
+				let message = data['message']
+				if (message){
+					success_text = message
 				}
+				createAlert(success_text)
 
 				console.log(data)
-                
-
-				// Reload site after 3 seconds
-				let reload_time = 1000 * 3;
-				setTimeout(function(){
-
-					let redirect = data['redirect'];
-					if (redirect.length){
-						location.href = redirect;
-					} else {
-						location.reload();
-					}
-					
-				}, reload_time)
+				timeRedirect(3, data['redirect'])
 			},
 			error: function (jqXHR) {
 				console.log(jqXHR)
@@ -367,25 +378,74 @@ $(function() {
                     }
                 }
 
-                // Create error alert
-				if (error_text){
-					createAlert(error_text, 'danger')
-				} else {
-					createAlert('Error occured while trying to create domain, check errors.', 'danger')
+				let message = data['message']
+				if (message){
+					error_text = message
 				}
+				createAlert(error_text, 'danger')
                 
 			},
 		})
 	}
 
+
 	if($('#add-subdomain-form').length){
 		$('#add-subdomain-form').submit(submitAddSubdomainForm);
+	}
+	if($('.record_update_modal').length){
+		$('.record_update_modal').submit(submitAddSubdomainForm);
+	}
+	if($('.subdomain-delete-form').length){
+		$('.subdomain-delete-form').submit(function(e){
+			let form = this
+			e.preventDefault()
+			swal({
+				title: "Are you sure you want to delete this subdomain?",
+				text: "Once deleted, you will not be able to recover this record, you will have to create it again!",
+				icon: "warning",
+				buttons: true,
+				dangerMode: true,
+			})
+			.then((willDelete) => {
+				if (willDelete) {
+					let formData = $(form).serialize();
+					let thisURL = form.action
+			
+					playLoader()
+					clearAlerts()
+					$.ajax({
+						method: "POST",
+						url: thisURL,
+						data: formData,
+						success: function (data){
+							console.log(data)
+							stopLoader()
+							let message = data['message']
+							swal(message, {
+								icon: "success",
+							});
+							timeRedirect(3, data['redirect'])
+
+						},
+						error: function (jqXHR) {
+							console.log(jqXHR)
+							let data = jqXHR['responseJSON']
+							console.log(data)
+							stopLoader()
+							let message = data['message']
+							createAlert(message, 'danger')
+						},
+					})
+				} else {
+					swal("Your subdomain is safe!");
+				}
+			})
+		});
 	}
 
 	if($('#deploy-react-form').length){
 		$('#deploy-react-form').submit(submitAddSubdomainForm);
 	}
-
 
 
 	if ($('#logModalContent').length){

@@ -1,0 +1,37 @@
+{% extends 'panel/base.html' %}
+
+
+{% block content %}
+    <div class="pb-3 mb-3 d-flex align-items-center justify-content-start">
+        <a href="{% url 'panel:github_account_create' %}" class='btn btn-gradient'> <span class='fa fa-github'></span> Connect Github Account</a>
+    </div>
+
+    <div class="row">
+
+        {% for acc in github_accounts %}
+            <div class="col-md-6 col-lg-6 col-xl-4 box-col-6">
+                <div class="card custom-card">
+                    <div class="text-center profile-details">
+                        <h5><a href="{% url 'panel:github_detail' acc.username %}">{{ acc.username }}</a></h5>
+                        <h6><a href="{{ acc.get_github_link }}" target="_blank">{{ acc.get_github_link }}</a></h6>
+                    </div>
+                    <div class="card-footer row">
+                        <div class="col-6 col-sm-6">
+                            <h6>Organization(s)</h6>
+                            <h5 class="counter">{{ acc.count_organizations }}</h5>
+                        </div>
+                        <div class="col-6 col-sm-6">
+                            <h6>Repository(s)</h6>
+                            <h5><span class="counter">{{ acc.count_repositories }}</span></h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+
+        {% if github_accounts.count == 0 %}
+            <h5 class='py-4'>No Github accounts added yet</h5>
+        {% endif %}
+
+    </div>
+{% endblock content %}

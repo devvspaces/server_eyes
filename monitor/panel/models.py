@@ -1,13 +1,17 @@
-from typing import Dict, List
+from typing import Dict, List, Type
 
 from django.conf import settings
 from django.db import models
+from django.db.models import QuerySet
 from django.utils.text import slugify
+from utils.general import merge_querysets
 from utils.general import printt as print  # noqa
-from utils.process import ServerProcess
 from utils.github import GithubClient
+from utils.linode import linodeClient
+from utils.logger import err_logger, logger  # noqa
 from utils.model_mixins import ModelChangeFunc
-
+from utils.process import ServerProcess
+from utils.typing import DnsType
 
 # NOTE: Create custom model field for comma separated fields
 
@@ -37,21 +41,21 @@ class Server(ModelChangeFunc):
     username = models.CharField(max_length=255)
     password = models.CharField(max_length=1024)
 
-    __process: ServerProcess = None
+    __process: Type[ServerProcess] = None
 
-    def create_process(self) -> ServerProcess:
+    def create_process(self) -> Type[ServerProcess]:
         """
         Create a server process
         """
 
-        return ServerProcess(
+        return Type[ServerProcess](
             host=self.ip_address,
             username=self.username,
             password=self.password,
             web_server=self.web_server
         )
 
-    def get_process(self) -> ServerProcess:
+    def get_process(self) -> Type[ServerProcess]:
         """
         Get a server process
         """
@@ -60,7 +64,7 @@ class Server(ModelChangeFunc):
             self.__process = self.create_process()
         return self.__process
 
-    def get_connected_process(self) -> ServerProcess:
+    def get_connected_process(self) -> Type[ServerProcess]:
         """
         Get a connected server process
         """
@@ -139,16 +143,37 @@ class Domain(models.Model):
     Domain model for top level domains
     """
 
+    DOMAIN_PROVIDER = (
+        ('1', 'Linode',),
+        ('2', 'GoDaddy',),
+        ('3', 'Namecheap',),
+    )
+
+    __DOMAIN_PROVIDER_DNS = {
+        '1': linodeClient
+    }
+
     domain = models.URLField()
     domain_id = models.IntegerField(unique=True)
     status = models.CharField(max_length=50)
     status_tag = models.CharField(max_length=50)
     soa_email = models.EmailField()
+    domain_provider = models.CharField(choices=DOMAIN_PROVIDER, max_length=1)
 
     def __str__(self):
         return self.domain
 
-    def get_subdomain_js_string(self):
+    @classmethod
+    def get_dns_clients(cls) -> Dict[str, Type[DnsType]]:
+        """
+        Get Domain name clients and id available
+
+        :return: Domain name clients api instances with id
+        :rtype: Dict[str, Type[DnsType]]
+        """
+        return cls.__DOMAIN_PROVIDER_DNS
+
+    def get_subdomain_js_string(self) -> str:
         """
         Return domain subdomains and record id
         Created for deploy page js code to get domain
@@ -175,6 +200,9 @@ class Domain(models.Model):
 
         return '?'.join(result)
 
+    def get_dns_client(self) -> Type[DnsType]:
+        return self.__DOMAIN_PROVIDER_DNS.get(self.domain_provider)
+
 
 class Subdomain(models.Model):
     """
@@ -182,6 +210,7 @@ class Subdomain(models.Model):
     """
     record_id = models.IntegerField(unique=True)
     domain_id = models.IntegerField()
+    # TODO: Use foriegn key here
     name = models.CharField(max_length=255)
     target = models.GenericIPAddressField()
 
@@ -201,6 +230,25 @@ class Subdomain(models.Model):
 class GithubAccount(ModelChangeFunc):
     """
     Github account for users model
+
+    :param username: Username of the github account
+    :type username: str
+    :param password: Personal Access Token of github account
+    :type password: str
+    :param white_list_organizations: Comma separated list of organization
+    names that should be listed with their repositories
+    (Names of organizations are case sensitive as required by Github)
+    :type white_list_organizations: str
+    :param black_list_organizations: Comma separated list of organization
+    names that should not be listed with their repositories
+    (Names of organizations are case sensitive as required by Github)
+    :type black_list_organizations: str
+    :param active: Active github accounts
+    :type active: bool
+    :param created: When github account was connected on the system
+    :type created: datetime
+    :param updated: Last time github account was updated
+    :type updated: datetime
     """
 
     username = models.CharField(max_length=255, unique=True)
@@ -252,6 +300,15 @@ class GithubAccount(ModelChangeFunc):
 
         return GithubClient(self.password)
 
+    def get_github_link(self) -> str:
+        """
+        Return github username link
+
+        :return: github username link
+        :rtype: str
+        """
+        return f"https://github.com/{self.username}"
+
     def list_comma_field(self, field_name: str) -> list:
         """
         Get the comma separated field in the database
@@ -271,75 +328,128 @@ class GithubAccount(ModelChangeFunc):
         """
         Get the list for whitelist
         """
-
         return self.list_comma_field('white_list_organizations')
 
     def get_black_list(self):
         """
         Get the list for blacklist
         """
-
         return self.list_comma_field('black_list_organizations')
 
     def update_account_users_blacklist(self):
         """
         Updates accounts by blacklist added
         """
-
-        # Get oraganization names
-        org_names: list = self.github_client.get_organizations_names()
-        org_names.append('personal')
-
         black_list = self.get_black_list()
-        allowed_orgs_names = list(set(org_names) - set(black_list))
 
-        current_orgs = self.repositoryuser_set.all()
-        for account in current_orgs:
-            if account.user in black_list:
-                account.delete()
-            elif account.user in allowed_orgs_names:
-                allowed_orgs_names.remove(account.user)
+        if black_list:
+            # Get oraganization names
+            org_names: list = self.github_client.get_organizations_names()
+            org_names.append('personal')
 
-        # Now add new organizations
-        for name in allowed_orgs_names:
-            owner_type = 'personal'
-            if name != 'personal':
-                owner_type = 'organization'
+            allowed_orgs_names = list(set(org_names) - set(black_list))
 
-            self.repositoryuser_set.create(
-                user=name, owner_type=owner_type)
+            current_orgs = self.repositoryuser_set.all()
+            for account in current_orgs:
+                if account.user in black_list:
+                    account.delete()
+                elif account.user in allowed_orgs_names:
+                    allowed_orgs_names.remove(account.user)
+
+            # Now add new organizations
+            for name in allowed_orgs_names:
+                owner_type = 'personal'
+                if name != 'personal':
+                    owner_type = 'organization'
+
+                self.repositoryuser_set.create(
+                    user=name, owner_type=owner_type)
 
     def update_account_users_whitelist(self):
         """
         Updates accounts by whitelist added
         """
-
-        # Get oraganization names
-        org_names = self.github_client.get_organizations_names()
-        org_names.append('personal')
-        org_names = set(org_names)
-
         whitelist = set(self.get_white_list())
-        allowed_orgs_names = org_names.intersection(whitelist)
 
-        current_orgs = self.repositoryuser_set.all()
-        for account in current_orgs:
-            if account.user not in whitelist:
-                account.delete()
-            elif account.user in allowed_orgs_names:
-                allowed_orgs_names.remove(account.user)
+        if whitelist:
+            # Get oraganization names
+            org_names = self.github_client.get_organizations_names()
+            org_names.append('personal')
+            org_names = set(org_names)
 
-        # Now add new organizations
-        for name in allowed_orgs_names:
-            owner_type = 'personal'
-            if name != 'personal':
-                owner_type = 'organization'
+            allowed_orgs_names = org_names.intersection(whitelist)
 
-            self.repositoryuser_set.create(
-                user=name, owner_type=owner_type)
+            current_orgs = self.repositoryuser_set.all()
+            for account in current_orgs:
+                if account.user not in whitelist:
+                    account.delete()
+                elif account.user in allowed_orgs_names:
+                    allowed_orgs_names.remove(account.user)
+
+            # Now add new organizations
+            for name in allowed_orgs_names:
+                owner_type = 'personal'
+                if name != 'personal':
+                    owner_type = 'organization'
+
+                self.repositoryuser_set.create(
+                    user=name, owner_type=owner_type)
+
+    def update_account_users(self):
+        """
+        Update account repository users users
+        """
+        self.update_account_users_blacklist()
+        self.update_account_users_whitelist()
 
     def __str__(self) -> str:
         return self.username
+
+    def get_repo_users(self) -> QuerySet:
+        """
+        Get all repo users connect to account
+
+        :return: Repository user queryset
+        :rtype: QuerySet
+        """
+        return self.repositoryuser_set.all()
+
+    def get_organizations(self) -> QuerySet:
+        """
+        Get organization repository that account has membership
+
+        :return: Queryset of Repository Users that are organizations
+        :rtype: QuerySet
+        """
+        return self.get_repo_users().filter(owner_type='organization')
+
+    def count_organizations(self) -> int:
+        """
+        Amount of organization repository that account has membership
+
+        :return: Count of organization repository
+        :rtype: int
+        """
+        return self.get_organizations().count()
+
+    def get_repositories(self) -> QuerySet:
+        """
+        All respository that account has access to
+
+        :return: Repository queryset
+        :rtype: QuerySet
+        """
+        return merge_querysets(
+            *[user.get_repositories() for user in self.get_repo_users()])
+
+    def count_repositories(self) -> int:
+        """
+        Amount of all repositories this account has access to
+
+        :return: Count of all repositories
+        :rtype: int
+        """
+        return self.get_repositories().count()
 
 
 class RepositoryUser(ModelChangeFunc):
@@ -410,7 +520,7 @@ class RepositoryUser(ModelChangeFunc):
         if self.show_private_repo is False:
             self.repository_set.filter(private=True).delete()
 
-        owner = self.get_owner(),
+        owner = self.get_owner()
         owner_type = self.get_owner_type()
 
         repository_list = client.get_repository_list(owner, owner_type)
@@ -423,16 +533,30 @@ class RepositoryUser(ModelChangeFunc):
             if private and not self.show_private_repo:
                 continue
 
-            repo_branches = client.get_repository_branches(owner, name)
-            branch_names = []
-            for branch in repo_branches:
-                branch_names.append(branch['name'])
-
+            branch_names = client.get_repository_branches(owner, name)
             join_branches = ','.join(branch_names)
             repo['branches'] = join_branches
 
             self.repository_set.update_or_create(
                 repo_id=repo_id, defaults=repo)
+
+    def get_repositories(self) -> QuerySet:
+        """
+        Get repositories available for this account
+
+        :return: Repository query set
+        :rtype: QuerySet
+        """
+        return self.repository_set.all()
+
+    def count_repositories(self) -> int:
+        """
+        Count repositories available for this account
+
+        :return: Count Repository query set
+        :rtype: int
+        """
+        return self.get_repositories().count()
 
     def __str__(self):
         return self.user

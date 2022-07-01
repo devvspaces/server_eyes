@@ -5,13 +5,13 @@
 
     <div class="d-flex align-items-center justify-content-between py-5">
         <div>
-            <h5 class="display-6 fw-normal">{{ domain.domain }}</h5>
+            <!-- <h5 class="display-6 fw-normal">{{ domain.domain }}</h5> -->
             <p class="fs-6 text-muted fw-bold"><a href="{% url 'panel:domain-list' %}" class='text-decoration-none'>Domain list / </a>{{ main_domain_ip }}</p>
         </div>
         <span class="badge bg-{{ domain.status_tag }}">{{ domain.status }}</span>
     </div>
 
-    <div class="card">
+    <div class="card mb-0">
         <div class="card-header py-3 d-flex align-items-center">
             <h5 class="mini_tabs_head">Subdomains</h5>
 
@@ -22,7 +22,7 @@
 
     <div class="card-body domain-name-card-body">
         <table class="table table-hover">
-            <thead>
+            <thead class="table-dark">
                 <tr>
                     <th scope="col">#</th>
                     <th scope="col">Domain name</th>
@@ -37,18 +37,51 @@
                     {% for record in list_records_processed %}
                         <tr>
                             <th scope="row">{{ forloop.counter }}</th>
-                            <td>{{ record.name }}.{{ domain.domain }}</td>
+                            <td><a href="http://{{ record.name }}.{{ domain.domain }}" target="_blank">{{ record.name }}.{{ domain.domain }}</a></td>
                             <td>{{ record.target }}</td>
                             <td>
-                                <form action="" method='post' class='d-flex align-items-center'>
+                                <form class="subdomain-delete-form" action="" method='post' class='d-flex align-items-center'>
                                     {% csrf_token %}
-                                    <a class='btn btn-sm btn-primary icon-only-btn me-1' href='#'> <span class='fa fa-edit'></span></a>
+                                    <a class='btn btn-sm btn-primary icon-only-btn me-1' href='#' type="button" data-bs-toggle="modal" data-bs-target="#updateSubdomainModal{{ forloop.counter }}"> <span class='fa fa-edit'></span></a>
                                     
-                                    <input type="hidden" value="{{ record.id }}">
+                                    <input type="hidden" name="type" value="delete">
+                                    <input type="hidden" name="record_id" value="{{ record.record_id }}">
                                     <button class='btn btn-sm btn-danger icon-only-btn'> <span class='fa fa-trash-o'></span></button>
                                 </form>
+                                <div class="modal fade" id="updateSubdomainModal{{ forloop.counter }}" tabindex="-1" aria-labelledby="updateSubdomainModalAria" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="updateSubdomainModalAria">Update Subdomain</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <form action="" method="post" class="record_update_modal">
+                                                    {% csrf_token %}
+                                                    <div class="mb-3">
+                                                        <label for="HostnameID{{ forloop.counter }}" class="form-label">Hostname*</label>
+                                                        <input name="name" required type="text" class="form-control" id="HostnameID{{ forloop.counter }}" aria-describedby="HostnameHelp" value="{{ record.name }}"/>
+                                                        <div class="form-errors"></div>
+                                                    </div>
+                                
+                                                    <div class="mb-3">
+                                                        <label for="ipAddressID{{ forloop.counter }}" class="form-label">IP Address*</label>
+                                                        <input name="target" required type="text" class="form-control" id="ipAddressID{{ forloop.counter }}" value="{{ record.target }}"/>
+                                                        <div class="form-errors"></div>
+                                                    </div>
+                                                    
+                                                    <input type="hidden" name="type" value="update"/>
+                                                    <input type="hidden" name="record_id" value="{{ record.record_id }}"/>
+                                
+                                                    <button type="submit" class="btn btn-primary">Update</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
+
                     {% endfor %}
                     
                 {% else %}

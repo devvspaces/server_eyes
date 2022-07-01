@@ -5,8 +5,7 @@
 <div class="log_tab">
 
     <div class="head">
-        <h4>{{ website.name }}</h4>
-
+        <p>Last checked: {{ website.last_checked }}</p>
         <div class="status_reload">
             <div class="top">
                 <div class="stat">
@@ -14,9 +13,6 @@
                     <span class="detail">{{ website.get_last_status.capitalize }}</span>
                 </div>
                 <a href="{% url 'panel:recheck_website' website.conf_filename %}" class="btn btn-sm btn-primary">Recheck</a>
-            </div>
-            <div class="bottom">
-                <p>Last checked: {{ website.last_checked }}</p>
             </div>
         </div>
     </div>

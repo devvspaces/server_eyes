@@ -1,46 +1,72 @@
+from typing import Type
 from django import forms
-from django.contrib.auth.models import User
 from utils.general import cryptor
 from utils.github import GithubClient
 from utils.validators import validate_special_char
+from utils.logger import err_logger, logger  # noqa
 
-from .models import GithubAccount, RepositoryUser, Server
-
-
-class LoginForm(forms.Form):
-    username = forms.CharField()
-    password = forms.CharField(widget=forms.PasswordInput())
-
-    def clean(self):
-        data = super(LoginForm, self).clean()
-        username = data.get('username')
-        password = data.get('password')
-
-        err_message = '''Please enter the correct
-                        username and password.'''
-
-        try:
-            user = User.objects.get(username=username)
-            if not user.check_password(password):
-                raise forms.ValidationError(
-                    {
-                        'username': err_message
-                    }
-                )
-        except User.DoesNotExist:
-            raise forms.ValidationError({'username': err_message})
-
-        return data
+from .models import GithubAccount, RepositoryUser, Server, Subdomain
 
 
 class SubdomainForm(forms.Form):
     name = forms.CharField(validators=[validate_special_char])
     target = forms.GenericIPAddressField()
     ttl_sec = forms.IntegerField(required=False)
+    record_id = forms.CharField(required=False)
+    subdomain: Type[Subdomain] = None
 
-    def clean_name(self):
-        name = self.cleaned_data.get('name')
-        return name.lower()
+    def clean_record_id(self):
+        record_id = self.cleaned_data.get('record_id')
+        if record_id:
+            try:
+                self.subdomain = Subdomain.objects.get(record_id=record_id)
+            except Subdomain.DoesNotExist:
+                raise forms.ValidationError('Subdomain does not exist')
+        return record_id
+
+    def clean(self):
+        cleaned_data = super().clean()
+        name = cleaned_data.get('name')
+        record_id = cleaned_data.get('record_id')
+        name = name.lower()
+
+        subdomains_qset = Subdomain.objects.filter(name=name)
+        if record_id:
+            subdomains_qset = subdomains_qset.exclude(record_id=record_id)
+
+        if subdomains_qset.exists():
+            raise forms.ValidationError(
+                {'name': 'Subdomain name already exist'})
+        cleaned_data['name'] = name
+        return cleaned_data
+
+    def update(self) -> Type[Subdomain]:
+        """
+        Updating Subdomain objects
+
+        :return: Subdomain
+        :rtype: Type[Subdomain]
+        """
+        for attr, _ in self.fields.items():
+            value = self.cleaned_data.get(attr)
+            setattr(self.subdomain, attr, value)
+        self.subdomain.save()
+        return self.subdomain
+
+
+class DeleteSubdomainForm(forms.Form):
+    record_id = forms.CharField()
+
+    def clean_record_id(self) -> Type[Subdomain]:
+        record_id = self.cleaned_data.get('record_id')
+        try:
+            return Subdomain.objects.get(record_id=record_id)
+        except Subdomain.DoesNotExist:
+            raise forms.ValidationError('Subdomain does not exist')
+
+    def delete(self):
+        record_id: Type[Subdomain] = self.cleaned_data.get('record_id')
+        record_id.delete()
 
 
 # Server create form for admin

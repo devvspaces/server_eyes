@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     'services',
     'panel',
     'deployer',
+    'account',
 
     # CRONTAB
     'django_crontab',
@@ -170,8 +171,8 @@ LOGGING = {
 }
 
 LOGIN_REDIRECT_URL = "panel:dashboard"
-LOGIN_URL = "panel:login"
-LOGOUT_URL = 'panel:logout'
+LOGIN_URL = "account:login"
+LOGOUT_URL = 'account:logout'
 
 PRINT_LOG = True
 OFF_EMAIL = True
