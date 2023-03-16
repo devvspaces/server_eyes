@@ -84,7 +84,6 @@ class ReactDeployNewapp(
 
                     subdomain = result.get('subdomain')
                     errors = result.get('errors')
-                    http_status = result.get('http_status')
                 else:
                     # Update subdomain target to the
                     # same as hosting server
@@ -120,6 +119,7 @@ class ReactDeployNewapp(
                     reverse('deploy:react-app', kwargs={'slug': app.slug}))
                 message = 'React App is successfully created'
                 messages.success(request, 'App is successfully created')
+                http_status = 200
 
             context['message'] = message
             return JsonResponse(data=context, status=http_status)

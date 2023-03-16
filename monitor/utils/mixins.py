@@ -88,7 +88,7 @@ class DnsUtilityMixin:
     """
     def create_subdomain_record(
         self, client: DnsType, domain_id: str, data: dict
-    ) -> Dict[str, Union[str, int, Type[Subdomain]]]:
+    ) -> Dict[str, Union[str, Type[Subdomain]]]:
         """
         _summary_
 
@@ -106,7 +106,6 @@ class DnsUtilityMixin:
         status, result = client.create_subdomain(
             data, domain_id)
         subdomain = None
-        http_status = 400
 
         if status is True:
             target = result['target']
@@ -121,11 +120,9 @@ class DnsUtilityMixin:
             }
 
             subdomain = Subdomain.objects.create(**new_obj)
-            http_status = 200
 
         result = {
             'subdomain': subdomain,
-            'errors': result.get('errors'),
-            'http_status': http_status,
+            'errors': result.get('errors')
         }
         return result

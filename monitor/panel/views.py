@@ -428,7 +428,6 @@ class DomainDetail(
             message = "New subdomain created \
 successfully, reloading page now."
             errors = result.get('errors')
-            http_status = result.get('http_status')
         else:
             errors = refactor_errors(form.errors)
 
@@ -436,6 +435,8 @@ successfully, reloading page now."
             context['errors'] = errors
             message = 'Error occured while trying \
 to create domain, check errors.'
+        else:
+            http_status = 200
 
         context['message'] = message
 

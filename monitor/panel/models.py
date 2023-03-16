@@ -48,7 +48,7 @@ class Server(ModelChangeFunc):
         Create a server process
         """
 
-        return Type[ServerProcess](
+        return ServerProcess(
             host=self.ip_address,
             username=self.username,
             password=self.password,
